@@ -1,0 +1,42 @@
+# Microservice Cluster Configuration Spec
+version: "2.14.0"
+environment: "production"
+
+services:
+  payments-api:
+    replicas: 6
+    resources:
+      cpu: "1000m"
+      memory: "2048Mi"
+    database:
+      host: "payments-db-primary.internal"
+      port: 5432
+      name: "payments"
+      pool:
+        min_connections: 2
+        max_connections: 5  # NOTE: Reduced from 30 in commit c4a9f12
+        acquire_timeout_ms: 5000
+        idle_timeout_ms: 30000
+
+  auth-service:
+    replicas: 4
+    resources:
+      cpu: "500m"
+      memory: "1024Mi"
+    database:
+      host: "auth-db-primary.internal"
+      port: 5432
+      name: "auth"
+      pool:
+        min_connections: 5
+        max_connections: 25
+
+  notification-worker:
+    replicas: 3
+    resources:
+      cpu: "250m"
+      memory: "512Mi"
+    kafka:
+      brokers: "kafka-cluster.internal:9092"
+      consumer_group: "notification-workers"
+      max_batch_size: 500

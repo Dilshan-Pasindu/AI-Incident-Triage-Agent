@@ -1,0 +1,38 @@
+# Git Ignore Rules for Incident Triage Agent
+
+# Environment and secrets
+.env
+.env.local
+*.env
+
+# Runtime data & locks (Non-negotiable)
+tickets.json
+tickets.lock
+agent_traces.jsonl
+
+# Rust build artifacts
+mcp-server/target/
+target/
+**/*.rs.bk
+Cargo.lock
+
+# Python cache & virtualenvs
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.pytest_cache/
+
+# Node / Web UI
+node_modules/
+web-ui/dist/
+web-ui/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS artifacts
+.DS_Store
+Thumbs.db
