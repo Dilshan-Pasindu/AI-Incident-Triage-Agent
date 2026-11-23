@@ -56,13 +56,15 @@ export default function App() {
     }
   }, [activeTab]) // eslint-disable-line
 
+  const [selectedModel, setSelectedModel] = useState<string>('default')
+
   const handleSubmit = async (query: string) => {
     setSubmitting(true)
     setErrorMsg(null)
     closeStream()
     setActiveRunId(null)
     try {
-      const run = await createRun(query, 'mock')
+      const run = await createRun(query, selectedModel)
       setActiveRunId(run.run_id)
       setRuns((prev) => [run, ...prev.filter((r) => r.run_id !== run.run_id)])
     } catch (e) {
@@ -205,6 +207,8 @@ export default function App() {
                   disabled={submitting}
                   onCancel={handleCancel}
                   isRunning={isRunning}
+                  selectedModel={selectedModel}
+                  onModelChange={setSelectedModel}
                 />
                 {errorMsg && (
                   <p className="mt-3 text-xs text-red-400 bg-red-500/8 border border-red-500/20 rounded-lg px-3 py-2">

@@ -155,7 +155,8 @@ async def create_run(req: CreateRunRequest):
         elif model_lower != "default":
             llm = GrokLlmClient(model=req.model)
 
-    ctx = await run_manager.start_run(query=query, llm=llm, model_name=req.model)
+    model_name_for_ctx = None if (not req.model or req.model.lower() == "default") else req.model
+    ctx = await run_manager.start_run(query=query, llm=llm, model_name=model_name_for_ctx)
     return ctx.to_dict()
 
 

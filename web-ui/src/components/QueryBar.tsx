@@ -16,9 +16,18 @@ interface QueryBarProps {
   disabled:  boolean
   onCancel?: () => void
   isRunning: boolean
+  selectedModel: string
+  onModelChange: (model: string) => void
 }
 
-export function QueryBar({ onSubmit, disabled, onCancel, isRunning }: QueryBarProps) {
+export function QueryBar({
+  onSubmit,
+  disabled,
+  onCancel,
+  isRunning,
+  selectedModel,
+  onModelChange,
+}: QueryBarProps) {
   const [query, setQuery] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -38,7 +47,61 @@ export function QueryBar({ onSubmit, disabled, onCancel, isRunning }: QueryBarPr
 
   return (
     <div className="space-y-3">
-      {/* Try: micro label */}
+      {/* Top bar: Mode & Model Selector */}
+      <div className="flex items-center justify-between gap-2 pb-1 text-xs">
+        <span className="text-[var(--text-muted)] flex items-center gap-1.5 font-medium">
+          <Zap className="h-3.5 w-3.5 text-cyan-400" />
+          Incident Investigation
+        </span>
+
+        {/* Model Selector Toggle */}
+        <div className="flex items-center gap-1 p-0.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-lg">
+          <button
+            type="button"
+            onClick={() => onModelChange('default')}
+            disabled={disabled || isRunning}
+            title="Use configured Live LLM (Google Gemini via .env)"
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150',
+              selectedModel === 'default'
+                ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                : 'text-[var(--text-faint)] hover:text-[var(--text)]',
+              (disabled || isRunning) && 'opacity-60 cursor-not-allowed'
+            )}
+          >
+            <span
+              className={cn(
+                'h-1.5 w-1.5 rounded-full',
+                selectedModel === 'default' ? 'bg-cyan-400 pulse-live' : 'bg-slate-500'
+              )}
+            />
+            Live LLM (Gemini)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onModelChange('mock')}
+            disabled={disabled || isRunning}
+            title="Use deterministic offline mock (zero API cost)"
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150',
+              selectedModel === 'mock'
+                ? 'bg-violet-500/15 text-violet-300 border border-violet-500/30 shadow-sm'
+                : 'text-[var(--text-faint)] hover:text-[var(--text)]',
+              (disabled || isRunning) && 'opacity-60 cursor-not-allowed'
+            )}
+          >
+            <span
+              className={cn(
+                'h-1.5 w-1.5 rounded-full',
+                selectedModel === 'mock' ? 'bg-violet-400' : 'bg-slate-500'
+              )}
+            />
+            Offline Mock
+          </button>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit}>
         <div className="flex gap-2 items-stretch">
           {/* Input */}
