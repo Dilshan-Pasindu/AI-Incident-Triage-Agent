@@ -9,12 +9,9 @@ and health diagnostics.
 
 from __future__ import annotations
 
-import asyncio
 from contextlib import asynccontextmanager
 import json
-import os
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Header, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,11 +20,11 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from incident_agent.approvers import ApprovalService
-from incident_agent.llm import GrokLlmClient, LlmClient, MockLlmClient, get_llm_client
+from incident_agent.llm import GrokLlmClient, LlmClient, MockLlmClient
 from incident_agent.mcp_client import MCPHub
 from incident_agent.paths import MOCK_DATA_DIR, WORKSPACE_DIR, RUST_BINARY, TRACE_FILE, EVAL_FILE
 from incident_agent.tracing import TraceLogger
-from app.runs import RunContext, RunManager, RunState
+from app.runs import RunManager
 
 repo_root = MOCK_DATA_DIR.parent
 mock_data_dir = MOCK_DATA_DIR

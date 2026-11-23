@@ -5,14 +5,12 @@ Tests for MCP client, MCPHub, dynamic discovery, prefix namespacing,
 name collision prevention, read-only filesystem policy, and connection recovery.
 """
 
-import asyncio
 import os
 import pytest
 from incident_agent.mcp_client import (
     FS_READ_ONLY_ALLOWLIST,
     HealthState,
     MCPHub,
-    ServerConnection,
     ToolRegistration,
 )
 

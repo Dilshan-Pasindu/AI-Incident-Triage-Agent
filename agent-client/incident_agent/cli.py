@@ -11,8 +11,6 @@ import argparse
 import asyncio
 import json
 import os
-import sys
-import time
 
 from dotenv import load_dotenv
 from rich.console import Console
@@ -24,7 +22,6 @@ from incident_agent.agent import run_query
 from incident_agent.cancellation import CancellationToken
 from incident_agent.events import (
     BaseAgentEvent,
-    EventType,
     FinalAnswerEvent,
     LlmTurnEvent,
     RunStartedEvent,

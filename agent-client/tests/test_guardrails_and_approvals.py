@@ -11,23 +11,16 @@ Comprehensive Pytest Suite for Phase 5:
 """
 
 import asyncio
-import json
 import os
 import tempfile
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 import pytest
 from incident_agent.approvers import (
-    ApprovalRecord,
     ApprovalService,
     ApprovalSource,
     ApprovalStatus,
-    CliApprover,
     ScriptedApprover,
-    compute_canonical_payload_hash,
 )
-from incident_agent.cancellation import CancellationToken
 from incident_agent.guardrails import (
     check_prompt_injection,
     sanitize_fs_arguments,
@@ -35,7 +28,7 @@ from incident_agent.guardrails import (
     validate_tool_arguments,
     validate_tool_batch,
 )
-from incident_agent.tracing import TraceLogger, redact, redact_string
+from incident_agent.tracing import redact, redact_string
 
 
 # ==============================================================================

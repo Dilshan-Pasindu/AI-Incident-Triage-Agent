@@ -11,12 +11,11 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
 import uuid
 
 from incident_agent.agent import run_query
-from incident_agent.approvers import ApprovalRecord, ApprovalService, ApprovalSource
+from incident_agent.approvers import ApprovalRecord, ApprovalService
 from incident_agent.cancellation import CancellationToken
 from incident_agent.events import (
     ApprovalRequiredEvent,

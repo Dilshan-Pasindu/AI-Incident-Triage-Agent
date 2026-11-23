@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -23,7 +22,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from incident_agent.approvers import (
     ApprovalRecord,
     ApprovalService,
-    ApprovalSource,
     ApprovalStatus,
     Approver,
     CliApprover,
@@ -47,7 +45,7 @@ from incident_agent.guardrails import (
     validate_tool_arguments,
     validate_tool_batch,
 )
-from incident_agent.llm import LlmClient, LlmTurn, ToolCallItem, get_llm_client
+from incident_agent.llm import LlmClient, LlmTurn, get_llm_client
 from incident_agent.mcp_client import MCPHub
 from incident_agent.tracing import TraceLogger, redact
 

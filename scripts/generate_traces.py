@@ -11,7 +11,6 @@ Generates representative trace files for the assignment submission:
 """
 
 import asyncio
-import os
 import sys
 from pathlib import Path
 
@@ -23,7 +22,6 @@ if str(agent_client_dir) not in sys.path:
 
 from incident_agent.agent import run_query
 from incident_agent.approvers import ApprovalService, ScriptedApprover
-from incident_agent.cancellation import CancellationToken
 from incident_agent.events import BaseAgentEvent
 from incident_agent.llm import MockLlmClient
 from incident_agent.mcp_client import MCPHub

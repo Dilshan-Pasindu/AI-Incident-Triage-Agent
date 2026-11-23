@@ -23,12 +23,11 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from mcp.types import Tool as McpTool, Resource as McpResource, ResourceTemplate as McpResourceTemplate
+from mcp.types import Resource as McpResource, ResourceTemplate as McpResourceTemplate
 
 from incident_agent.paths import MOCK_DATA_DIR
 

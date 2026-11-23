@@ -12,8 +12,6 @@ Verifies:
 
 import asyncio
 from contextlib import asynccontextmanager
-import json
-from pathlib import Path
 import pytest
 from httpx import ASGITransport, AsyncClient
 

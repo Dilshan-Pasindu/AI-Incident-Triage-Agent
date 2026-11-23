@@ -12,9 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import re
-import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
