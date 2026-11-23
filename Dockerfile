@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Build Rust MCP Server
 # ---------------------------------------------------------------------------
-FROM rust:1.80-slim AS rust-builder
+FROM rust:slim AS rust-builder
 WORKDIR /build
 
 COPY mcp-server ./mcp-server

@@ -1,0 +1,13 @@
+# GitHub Linguist Language Configuration
+*.rs linguist-language=Rust
+*.py linguist-language=Python
+*.ts linguist-language=TypeScript
+*.tsx linguist-language=TypeScript
+
+# Exclude generated, mock data, and audit traces from repository language statistics
+mock_data/** linguist-vendored
+traces/** linguist-vendored
+agent_traces.jsonl linguist-vendored
+eval_results.md linguist-documentation
+REPORT.md linguist-documentation
+README.md linguist-documentation
