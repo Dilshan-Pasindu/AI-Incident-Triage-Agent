@@ -1,0 +1,17 @@
+services:
+  incident-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: incident-triage-agent:latest
+    container_name: incident-triage-agent
+    ports:
+      - "8000:8000"
+    environment:
+      - XAI_API_KEY=${XAI_API_KEY:-}
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - ./mock_data/tickets.json:/app/mock_data/tickets.json
+      - ./agent_traces.jsonl:/app/agent_traces.jsonl
+    restart: unless-stopped

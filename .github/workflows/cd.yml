@@ -1,0 +1,126 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-and-package:
+    name: Build Production Release Bundle & Verify Container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and targets
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mcp-server
+
+      - name: Build Rust MCP release binary
+        run: cargo build --release --manifest-path mcp-server/Cargo.toml
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web-ui/package-lock.json
+
+      - name: Build React Web UI production bundle
+        run: |
+          npm ci --prefix web-ui
+          npm run build --prefix web-ui
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            agent-client/pyproject.toml
+            web-backend/pyproject.toml
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e agent-client
+          python -m pip install -e web-backend
+
+      - name: Install filesystem MCP server
+        run: npm ci --prefix agent-client
+
+      - name: Verify Web Backend & Static UI serving end-to-end
+        run: |
+          python -m uvicorn app.server:app --host 127.0.0.1 --port 8000 &
+          SERVER_PID=$!
+          echo "Server started with PID $SERVER_PID"
+          
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1:8000/api/health | grep -q '"status":"ok"'; then
+              echo "Server health check passed!"
+              break
+            fi
+            sleep 1
+          done
+          
+          # Verify static UI index.html is served
+          curl -sI http://127.0.0.1:8000/ | grep -E "HTTP/1.1 200 OK|content-type: text/html"
+          
+          kill $SERVER_PID
+
+      - name: Assemble Release Tarball
+        run: |
+          REF_CLEAN=$(echo "${{ github.ref_name }}" | tr '/' '-')
+          RELEASE_NAME="incident-triage-agent-${REF_CLEAN}"
+          
+          tar -czf "${RELEASE_NAME}-linux-x86_64.tar.gz" \
+            mcp-server/target/release/ops-telemetry-mcp \
+            web-ui/dist \
+            agent-client \
+            web-backend \
+            mock_data \
+            scripts \
+            pyrightconfig.json \
+            pytest.ini \
+            README.md \
+            REPORT.md \
+            .env.example
+
+      - name: Upload Release Archive Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: incident-triage-agent-release-bundle
+          path: "*.tar.gz"
+          retention-days: 14
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: incident-triage-agent:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.tar.gz"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

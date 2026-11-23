@@ -225,6 +225,41 @@ Run all 29 pytest unit, integration, and architectural boundary tests:
 pytest -v
 ```
 
+### 5. Docker & Containerized Deployment
+The repository includes a production multi-stage `Dockerfile` and `docker-compose.yml`:
+```bash
+# Build and run using Docker Compose
+docker compose up --build
+
+# Or build and run standalone container
+docker build -t incident-triage-agent .
+docker run -p 8000:8000 -e XAI_API_KEY="your-key" incident-triage-agent
+```
+Access the application at `http://localhost:8000` (FastAPI backend with static React Web UI).
+
+---
+
+## CI/CD Automation
+
+The repository includes enterprise-grade GitHub Actions workflows for continuous integration and delivery across Rust, Python, and TypeScript:
+
+### 1. Continuous Integration (`.github/workflows/ci.yml`)
+Triggered automatically on every `push` and `pull_request` to `main` and `dev`:
+- **Rust MCP Server Job**: Enforces formatting (`cargo fmt`), strict linting (`cargo clippy -D warnings`), unit and parallel concurrency tests (`cargo test`), and produces release binaries.
+- **Frontend Web UI Job**: Enforces TypeScript compilation (`tsc`) and generates the production asset bundle (`vite build`).
+- **Python Matrix Suite Job** (tested on Python 3.11 & 3.12):
+  - Verifies architectural dependency inversion (`test_no_web_imports.py` ensures core agent has zero web imports).
+  - Enforces static type safety across all files via `pyright`.
+  - Executes the full 29-test pytest suite across core and web packages.
+  - Executes a smoke pass of the 7-benchmark evaluation suite (`eval_suite.py`).
+
+### 2. Continuous Delivery (`.github/workflows/cd.yml`)
+Triggered on `push` to `main`, manual dispatch, or release tags (`v*`):
+- Assembles release distribution bundles (`incident-triage-agent-linux-x86_64.tar.gz`).
+- Performs end-to-end smoke verification of background API startup and static UI serving.
+- Builds container images with multi-stage layer caching via Docker Buildx.
+- Automatically publishes release assets on version tags (`v*`).
+
 ---
 
 ## Benchmark Scenarios & Evaluation Summary
