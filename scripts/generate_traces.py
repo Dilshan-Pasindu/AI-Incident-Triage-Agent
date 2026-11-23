@@ -21,13 +21,13 @@ agent_client_dir = repo_root / "agent-client"
 if str(agent_client_dir) not in sys.path:
     sys.path.insert(0, str(agent_client_dir))
 
-from agent import run_query
-from approvers import ApprovalService, ScriptedApprover
-from cancellation import CancellationToken
-from events import BaseAgentEvent
-from llm import MockLlmClient
-from mcp_client import MCPHub
-from tracing import TraceLogger
+from incident_agent.agent import run_query
+from incident_agent.approvers import ApprovalService, ScriptedApprover
+from incident_agent.cancellation import CancellationToken
+from incident_agent.events import BaseAgentEvent
+from incident_agent.llm import MockLlmClient
+from incident_agent.mcp_client import MCPHub
+from incident_agent.tracing import TraceLogger
 
 
 async def generate_investigation_trace(hub: MCPHub, workspace_dir: str):

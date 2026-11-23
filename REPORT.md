@@ -180,7 +180,7 @@ A foundational engineering principle of this system is that **prompt formatting 
   3. Even if the LLM attempts to forge an incident ticket, execution is halted by the cryptographic approval gate until a human operator clicks approve.
 
 ### 3.2 Canonical Path Confinement & Traversal Protection
-All filesystem interactions targeting `mock_data/workspace` undergo multi-stage path validation in `agent-client/guardrails.py`:
+All filesystem interactions targeting `mock_data/workspace` undergo multi-stage path validation in `agent-client/incident_agent/guardrails.py`:
 - **Symlink Resolution**: Resolves all symlinks using `Path.resolve()`.
 - **Commonpath Verification**: Verifies that `os.path.commonpath([target, workspace_root]) == workspace_root`. Any attempt to escape the workspace via relative traversal (`../../etc/passwd`) or symlink hopping is rejected immediately.
 - **Sensitive File Blacklisting**: Explicitly blocks access to files containing `.env`, `.git`, `.aws`, or `.ssh`.
@@ -201,7 +201,7 @@ The `TraceLogger` appends all tool execution records to `agent_traces.jsonl`. Be
 
 ## 4. Empirical Evaluation & Benchmark Analysis
 
-The agent was evaluated using the automated evaluation suite (`agent-client/eval_suite.py`). Each benchmark scenario executes end-to-end against live MCP servers, validating functional correctness, multi-turn reasoning, and security enforcement.
+The agent was evaluated using the automated evaluation suite (`agent-client/incident_agent/eval_suite.py`). Each benchmark scenario executes end-to-end against live MCP servers, validating functional correctness, multi-turn reasoning, and security enforcement.
 
 ### 4.1 Evaluation Summary Matrix
 

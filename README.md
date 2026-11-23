@@ -1,6 +1,6 @@
 # AI Incident Triage & Release Readiness Agent with MCP
 
-[![CI Tests](https://img.shields.io/badge/tests-21%20passed-brightgreen.svg)](agent-client/tests/)
+[![CI Tests](https://img.shields.io/badge/tests-29%20passed-brightgreen.svg)](agent-client/tests/)
 [![Rust MCP](https://img.shields.io/badge/rust-rmcp%203.11.0-blue.svg)](mcp-server/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](agent-client/)
 [![Model Context Protocol](https://img.shields.io/badge/protocol-MCP%202024--11--05-purple.svg)](https://modelcontextprotocol.io/)
@@ -16,12 +16,17 @@ The architecture separates the agent orchestrator from environment capabilities 
 ```mermaid
 flowchart TD
     subgraph UI ["User Interfaces"]
-        CLI["Rich Terminal CLI (agent-client/cli.py)"]
+        CLI["Rich Terminal CLI (incident_agent.cli)"]
         WEB["React + Vite UI (web-ui/)"]
     end
 
-    subgraph Host ["Agent Host & Orchestration (Python)"]
-        API["FastAPI Backend (server.py)"]
+    subgraph WebBackend ["Web Backend Layer (web-backend/)"]
+        API["FastAPI Backend (app/server.py)"]
+        RUNS["Run Manager & SSE Replay (app/runs.py)"]
+        WAPPROV["Web Approver (app/approver.py)"]
+    end
+
+    subgraph CoreHost ["Agent Core Package (agent-client/incident_agent/)"]
         LOOP["Multi-Turn Tool Loop (agent.py)"]
         GUARD["Code-Enforced Guardrails (guardrails.py)"]
         HITL["Central Approval Authority (approvers.py)"]
@@ -40,7 +45,10 @@ flowchart TD
     end
 
     CLI --> LOOP
-    WEB --> API --> LOOP
+    WEB --> API
+    API --> RUNS
+    RUNS --> WAPPROV
+    RUNS --> LOOP
     LOOP <--> GUARD
     LOOP <--> HITL
     LOOP <--> TRACE
@@ -49,6 +57,8 @@ flowchart TD
     HUB <==>|stdio IPC| OPS
     HUB <==>|stdio IPC| FS
 ```
+
+> **Architecture & Dependency Direction**: The repository enforces a strict **one-way dependency flow**: `web-backend` imports from `incident-agent` (core), while the core package has **zero** web dependencies (no FastAPI, Starlette, or Uvicorn). Architectural boundary tests strictly guarantee this separation.
 
 ---
 
@@ -146,13 +156,16 @@ cd ..
 ```
 The compiled binary will be located at `mcp-server/target/release/ops-telemetry-mcp`.
 
-### 2. Setup Python Virtual Environment
+### 2. Setup Python Virtual Environment & Install Packages
 ```bash
-cd agent-client
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-cd ..
+
+# Install core incident agent
+pip install -e agent-client
+
+# Install web backend layer (FastAPI, SSE, static UI serving)
+pip install -e web-backend
 ```
 
 ### 3. Verify Filesystem Server
@@ -175,7 +188,9 @@ cp .env.example .env
 ### 1. Interactive CLI Mode
 Launch the rich terminal interface:
 ```bash
-PYTHONPATH=agent-client ./agent-client/.venv/bin/python agent-client/cli.py
+incident-agent
+# or:
+python -m incident_agent.cli
 ```
 **Example Queries to Try**:
 - `Show the last 5 ERROR logs for auth-service`
@@ -183,17 +198,31 @@ PYTHONPATH=agent-client ./agent-client/.venv/bin/python agent-client/cli.py
 - `Is the release ready for deployment? Check checklist and workspace configs`
 - `Create a critical incident ticket for payments-api outage` *(triggers interactive HITL approval prompt)*
 
-### 2. Automated Evaluation Suite
+### 2. Web Backend & React Web UI
+Start the FastAPI backend with SSE event streaming and static asset serving:
+```bash
+# Terminal 1: Backend
+incident-web
+# or:
+uvicorn app.server:app --port 8000 --reload
+
+# Terminal 2: React + Vite Web UI
+cd web-ui
+npm run dev
+# -> http://localhost:5173 (proxies /api to localhost:8000)
+```
+
+### 3. Automated Evaluation Suite
 Run all 7 benchmark scenarios with automated timestamp shifting and latency reporting:
 ```bash
-PYTHONPATH=agent-client ./agent-client/.venv/bin/python agent-client/eval_suite.py --repeat 2
+python -m incident_agent.eval_suite --repeat 2
 ```
 This produces a formatted terminal table and regenerates [eval_results.md](file:///Users/dilshanpasindu/Documents/GitHub/AI-Incident-Triage-Agent/eval_results.md).
 
-### 3. Running the Test Suite
-Run all 21 pytest unit and integration tests:
+### 4. Running the Test Suite
+Run all 29 pytest unit, integration, and architectural boundary tests:
 ```bash
-PYTHONPATH=agent-client ./agent-client/.venv/bin/pytest agent-client/tests/ -v
+pytest -v
 ```
 
 ---
