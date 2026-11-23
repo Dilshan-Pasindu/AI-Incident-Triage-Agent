@@ -12,7 +12,7 @@ RUN cd mcp-server && cargo build --release
 # ---------------------------------------------------------------------------
 # Stage 2: Build React Web UI Production Assets
 # ---------------------------------------------------------------------------
-FROM node:20-slim AS ui-builder
+FROM node:24-slim AS ui-builder
 WORKDIR /build
 
 COPY web-ui ./web-ui
@@ -24,11 +24,16 @@ RUN cd web-ui && npm ci && npm run build
 FROM python:3.11-slim
 WORKDIR /app
 
-# Install Node.js runtime for @modelcontextprotocol/server-filesystem
+# Install Node.js 24 runtime for @modelcontextprotocol/server-filesystem
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nodejs \
-    npm \
     curl \
+    ca-certificates \
+    gnupg \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy package descriptors and source code

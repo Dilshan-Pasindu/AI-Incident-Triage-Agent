@@ -149,7 +149,11 @@ class ServerConnection:
 
             if self._init_error:
                 self.health = HealthState.UNHEALTHY
-                raise self._init_error
+                stderr_text = self.get_recent_stderr()
+                err_msg = f"Failed to initialize MCP connection '{self.name}': {self._init_error}"
+                if stderr_text:
+                    err_msg += f"\n--- {self.name} stderr ---\n{stderr_text}"
+                raise ConnectionError(err_msg) from self._init_error
 
             self.health = HealthState.HEALTHY
 
@@ -316,8 +320,8 @@ class MCPHub:
             command=self.ops_binary_path,
             args=[],
             env={
+                **os.environ,
                 "OPS_DATA_DIR": self.data_dir,
-                "PATH": os.environ.get("PATH", ""),
                 "RUST_BACKTRACE": "1",
             },
         )
