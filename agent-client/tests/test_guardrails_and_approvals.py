@@ -88,17 +88,17 @@ def test_canonical_path_boundary():
         # 2. Path traversal (..) outside root
         ok, _, err = validate_and_canonicalize_path("../secret.txt", ws_root)
         assert ok is False
-        assert "BLOCKED by policy" in err
+        assert err is not None and "BLOCKED by policy" in err
 
         # 3. Absolute path outside root
         ok, _, err = validate_and_canonicalize_path("/etc/passwd", ws_root)
         assert ok is False
-        assert "BLOCKED by policy" in err
+        assert err is not None and "BLOCKED by policy" in err
 
         # 4. NUL byte injection
         ok, _, err = validate_and_canonicalize_path("test.txt\0/evil", ws_root)
         assert ok is False
-        assert "NUL byte" in err
+        assert err is not None and "NUL byte" in err
 
         # 5. Sensitive filename blocking (.env, id_rsa, etc.)
         env_file = os.path.join(ws_root, ".env")
@@ -107,11 +107,11 @@ def test_canonical_path_boundary():
 
         ok, _, err = validate_and_canonicalize_path(".env", ws_root)
         assert ok is False
-        assert "sensitive file" in err
+        assert err is not None and "sensitive file" in err
 
         ok, _, err = validate_and_canonicalize_path("id_rsa", ws_root)
         assert ok is False
-        assert "sensitive file" in err
+        assert err is not None and "sensitive file" in err
 
 
 def test_symlink_escape_blocked():
@@ -131,7 +131,7 @@ def test_symlink_escape_blocked():
         # Attempt to access the symlink
         ok, _, err = validate_and_canonicalize_path("link_to_outside.txt", ws_root)
         assert ok is False
-        assert "BLOCKED by policy" in err
+        assert err is not None and "BLOCKED by policy" in err
 
 
 def test_sanitize_fs_arguments():
@@ -153,7 +153,7 @@ def test_sanitize_fs_arguments():
         bad_args = {"path": "../../etc/shadow", "tail": 5}
         ok, _, err = sanitize_fs_arguments(bad_args, ws_root)
         assert ok is False
-        assert "BLOCKED by policy" in err
+        assert err is not None and "BLOCKED by policy" in err
 
 
 # ==============================================================================
@@ -177,7 +177,7 @@ def test_tool_argument_validation():
     # 2. Missing required
     ok, err = validate_tool_arguments(schema, {"limit": 10})
     assert ok is False
-    assert "required" in err
+    assert err is not None and "required" in err
 
     # 3. Wrong type
     ok, err = validate_tool_arguments(schema, {"service_name": 12345})
@@ -190,7 +190,7 @@ def test_tool_argument_validation():
     # 5. Unexpected extra arguments (fails closed)
     ok, err = validate_tool_arguments(schema, {"service_name": "payments-api", "extra_param": "bad"})
     assert ok is False
-    assert "additional" in err.lower() or "extra_param" in err.lower()
+    assert err is not None and ("additional" in err.lower() or "extra_param" in err.lower())
 
 
 def test_batch_validation():
@@ -205,7 +205,7 @@ def test_batch_validation():
     # Missing ID
     ok, err = validate_tool_batch([FakeCall(None)])
     assert ok is False
-    assert "missing or empty" in err
+    assert err is not None and "missing or empty" in err
 
     # Empty string ID
     ok, err = validate_tool_batch([FakeCall("   ")])
@@ -214,7 +214,7 @@ def test_batch_validation():
     # Duplicate IDs in same turn
     ok, err = validate_tool_batch([FakeCall("c1"), FakeCall("c1")])
     assert ok is False
-    assert "duplicate" in err
+    assert err is not None and "duplicate" in err
 
 
 # ==============================================================================

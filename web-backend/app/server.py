@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from incident_agent.approvers import ApprovalService
-from incident_agent.llm import GrokLlmClient, MockLlmClient, get_llm_client
+from incident_agent.llm import GrokLlmClient, LlmClient, MockLlmClient, get_llm_client
 from incident_agent.mcp_client import MCPHub
 from incident_agent.paths import MOCK_DATA_DIR, WORKSPACE_DIR, RUST_BINARY, TRACE_FILE, EVAL_FILE
 from incident_agent.tracing import TraceLogger
@@ -148,7 +148,7 @@ async def create_run(req: CreateRunRequest):
     if not query:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
-    llm = None
+    llm: Optional[LlmClient] = None
     if req.model:
         if req.model.lower() == "mock":
             llm = MockLlmClient()
@@ -210,8 +210,10 @@ async def stream_run_events(
         except ValueError:
             pass
 
+    mgr = run_manager
+
     async def event_generator():
-        async for ev in run_manager.subscribe_events(run_id=run_id, last_event_id=last_id):
+        async for ev in mgr.subscribe_events(run_id=run_id, last_event_id=last_id):
             if await request.is_disconnected():
                 break
 
@@ -253,7 +255,7 @@ async def cancel_run(run_id: str, req: Optional[CancelRunRequest] = None):
     if not run_manager:
         raise HTTPException(status_code=500, detail="Server not initialized")
 
-    reason = req.reason if req else "User cancelled"
+    reason: str = (req.reason if req and req.reason else None) or "User cancelled"
     success = await run_manager.cancel_run(run_id, reason=reason)
     if not success:
         raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")

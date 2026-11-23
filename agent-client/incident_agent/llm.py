@@ -91,7 +91,7 @@ class GrokLlmClient:
         wait=wait_exponential(multiplier=1, min=1, max=10),
         reraise=True,
     )
-    async def step(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> LlmTurn:
+    async def _step_with_retry(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> LlmTurn:
         start_time = time.perf_counter()
         try:
             kwargs: Dict[str, Any] = {
@@ -128,6 +128,9 @@ class GrokLlmClient:
         except Exception as e:
             sanitized = sanitize_error_message(e)
             raise RuntimeError(f"Grok API error: {sanitized}") from None
+
+    async def step(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> LlmTurn:
+        return await self._step_with_retry(messages, tools)
 
 
 class MockLlmClient:

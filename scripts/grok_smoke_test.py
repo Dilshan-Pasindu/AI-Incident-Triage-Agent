@@ -14,6 +14,7 @@ Verifies integration with xAI Grok API:
 
 from __future__ import annotations
 
+from typing import Any, cast
 import json
 import os
 import sys
@@ -93,7 +94,7 @@ def test_grok_smoke():
                 {"role": "system", "content": "You are a DevOps assistant. Always use tools to search logs when asked."},
                 {"role": "user", "content": "Check the last 3 ERROR logs for payments-api."},
             ],
-            tools=test_tools,
+            tools=cast(Any, test_tools),
             tool_choice="auto",
         )
         latency = (time.perf_counter() - start) * 1000
@@ -102,12 +103,13 @@ def test_grok_smoke():
         if choice.message.tool_calls:
             print(f"Tool calls generated: {len(choice.message.tool_calls)}")
             for tc in choice.message.tool_calls:
-                print(f"  ID: {tc.id}")
-                print(f"  Function: {tc.function.name}")
-                print(f"  Arguments JSON: {tc.function.arguments}")
-                # Verify valid JSON
-                parsed_args = json.loads(tc.function.arguments)
-                print(f"  Parsed Arguments: {parsed_args}")
+                fn = getattr(tc, "function", None)
+                if fn:
+                    print(f"  ID: {tc.id}")
+                    print(f"  Function: {fn.name}")
+                    print(f"  Arguments JSON: {fn.arguments}")
+                    parsed_args = json.loads(fn.arguments)
+                    print(f"  Parsed Arguments: {parsed_args}")
         else:
             print(f"Model text response: {choice.message.content}")
 
@@ -124,14 +126,16 @@ def test_grok_smoke():
                 {"role": "system", "content": "You are a DevOps assistant. Call all relevant tools in parallel when possible."},
                 {"role": "user", "content": "Check both ERROR logs and deployment history for payments-api simultaneously."},
             ],
-            tools=test_tools,
+            tools=cast(Any, test_tools),
             tool_choice="auto",
         )
         choice = response.choices[0]
         if choice.message.tool_calls:
             print(f"Tool calls generated in single turn: {len(choice.message.tool_calls)}")
             for tc in choice.message.tool_calls:
-                print(f"  - {tc.function.name}({tc.function.arguments})")
+                fn = getattr(tc, "function", None)
+                if fn:
+                    print(f"  - {fn.name}({fn.arguments})")
         else:
             print(f"Model chose text response: {choice.message.content}")
     except Exception as e:

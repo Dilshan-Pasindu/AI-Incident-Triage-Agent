@@ -121,8 +121,9 @@ class RunContext:
         """Serialize run summary for API endpoints."""
         tools_used = []
         for ev in self.events:
-            if hasattr(ev, "tool") and ev.tool not in tools_used:
-                tools_used.append(ev.tool)
+            tool_name = getattr(ev, "tool", None)
+            if tool_name and tool_name not in tools_used:
+                tools_used.append(tool_name)
 
         return {
             "run_id": self.run_id,

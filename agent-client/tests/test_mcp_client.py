@@ -167,11 +167,11 @@ async def test_resource_uri_validation(repo_paths):
         # Invalid template service
         ok, srv, err = hub.validate_resource_uri("service://runbooks/fraud-engine")
         assert ok is False
-        assert "Unknown service" in err
+        assert err is not None and "Unknown service" in err
 
         # Arbitrary URI
         ok, srv, err = hub.validate_resource_uri("http://evil.com/leak")
         assert ok is False
-        assert "does not match" in err
+        assert err is not None and "does not match" in err
     finally:
         await hub.close()

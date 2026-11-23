@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/agent-client/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/agent-client",
+    "${workspaceFolder}/web-backend"
+  ]
+}

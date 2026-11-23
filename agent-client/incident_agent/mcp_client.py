@@ -103,7 +103,7 @@ class ServerConnection:
         self._ready_event = asyncio.Event()
         self._init_error: Optional[Exception] = None
         self._reconnect_lock = asyncio.Lock()
-        self._stderr_file: Optional[tempfile.NamedTemporaryFile] = None
+        self._stderr_file: Any = None
         self._process_pid: Optional[int] = None
 
     @property

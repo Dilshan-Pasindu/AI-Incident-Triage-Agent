@@ -14,7 +14,7 @@ import json
 import uuid
 from datetime import datetime, timezone, timedelta
 from enum import Enum
-from typing import Any, Dict, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol
 
 
 class ApprovalStatus(str, Enum):
