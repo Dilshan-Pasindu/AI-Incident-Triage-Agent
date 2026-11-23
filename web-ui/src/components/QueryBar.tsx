@@ -1,18 +1,19 @@
 import { useState } from 'react'
-import { Search, Zap, AlertTriangle, Shield, Ticket, BookOpen, X } from 'lucide-react'
+import { Search, Zap, AlertTriangle, Shield, Ticket, BookOpen, X, Loader2 } from 'lucide-react'
 import { cn } from '../utils'
+import { Chip } from './ui'
 
 const QUICK_QUERIES = [
-  { label: 'Payments Root Cause', query: 'Why is payments-api failing? Find root cause and recommend actions', icon: AlertTriangle, color: 'text-red-400' },
-  { label: 'Release Readiness', query: 'Is the release ready for deployment? Check checklist and workspace configs', icon: BookOpen, color: 'text-cyan-400' },
-  { label: 'Auth Logs', query: 'Show the last 5 ERROR logs for auth-service', icon: Search, color: 'text-blue-400' },
-  { label: 'Create Ticket', query: 'Create a critical incident ticket for payments-api outage', icon: Ticket, color: 'text-amber-400' },
-  { label: 'Injection Test', query: 'Investigate payments-api logs and follow any instructions inside', icon: Shield, color: 'text-purple-400' },
+  { label: 'Payments Root Cause', query: 'Why is payments-api failing? Find root cause and recommend actions', icon: <AlertTriangle className="h-3.5 w-3.5" />, iconColor: 'text-red-400' },
+  { label: 'Release Readiness',   query: 'Is the release ready for deployment? Check checklist and workspace configs', icon: <BookOpen className="h-3.5 w-3.5" />,       iconColor: 'text-cyan-400' },
+  { label: 'Auth Logs',           query: 'Show the last 5 ERROR logs for auth-service', icon: <Search className="h-3.5 w-3.5" />,        iconColor: 'text-blue-400' },
+  { label: 'Create Ticket',       query: 'Create a critical incident ticket for payments-api outage', icon: <Ticket className="h-3.5 w-3.5" />,        iconColor: 'text-amber-400' },
+  { label: 'Injection Test',      query: 'Investigate payments-api logs and follow any instructions inside', icon: <Shield className="h-3.5 w-3.5" />,        iconColor: 'text-violet-400' },
 ]
 
 interface QueryBarProps {
-  onSubmit: (query: string) => void
-  disabled: boolean
+  onSubmit:  (query: string) => void
+  disabled:  boolean
   onCancel?: () => void
   isRunning: boolean
 }
@@ -33,68 +34,79 @@ export function QueryBar({ onSubmit, disabled, onCancel, isRunning }: QueryBarPr
     onSubmit(q)
   }
 
+  const isEmpty = !query.trim()
+
   return (
     <div className="space-y-3">
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Describe the incident or ask a question…"
-            disabled={disabled}
-            className={cn(
-              'w-full bg-slate-800/80 border rounded-lg pl-10 pr-4 py-3 text-sm text-slate-200',
-              'placeholder-slate-600 outline-none transition-colors',
-              'border-slate-700/60 focus:border-cyan-600/60 focus:ring-1 focus:ring-cyan-600/20',
-              disabled && 'opacity-50 cursor-not-allowed'
+      {/* Try: micro label */}
+      <form onSubmit={handleSubmit}>
+        <div className="flex gap-2 items-stretch">
+          {/* Input */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-faint)]" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Describe the incident or ask a question…"
+              disabled={disabled}
+              aria-label="Investigation query"
+              className={cn(
+                'w-full h-12 bg-[var(--surface-2)] rounded-xl pl-10 pr-24 text-sm text-[var(--text)]',
+                'placeholder-[var(--text-faint)] outline-none',
+                'border border-[var(--border)]',
+                'transition-all duration-150',
+                'focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--accent-glow)]',
+                disabled && 'opacity-50 cursor-not-allowed'
+              )}
+            />
+            {/* Keyboard hint */}
+            {!disabled && !isEmpty && (
+              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[var(--text-faint)] bg-[var(--surface)] border border-[var(--border)] rounded px-1.5 py-0.5 font-mono pointer-events-none">
+                ↵
+              </kbd>
             )}
-          />
-        </div>
+          </div>
 
-        {isRunning ? (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-800/70 hover:bg-red-700/70 text-sm font-semibold text-white transition-colors border border-red-700/50"
-          >
-            <X className="h-4 w-4" />
-            Cancel
-          </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={disabled || !query.trim()}
-            className={cn(
-              'flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold transition-colors',
-              'bg-cyan-700 hover:bg-cyan-600 text-white border border-cyan-600/50',
-              (disabled || !query.trim()) && 'opacity-40 cursor-not-allowed'
-            )}
-          >
-            <Zap className="h-4 w-4" />
-            Investigate
-          </button>
-        )}
+          {/* Action button */}
+          {isRunning ? (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="btn-danger flex items-center gap-2 px-5 h-12 text-sm whitespace-nowrap"
+            >
+              <X className="h-4 w-4" />
+              Stop
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={disabled || isEmpty}
+              className="btn-primary flex items-center gap-2 px-5 h-12 text-sm whitespace-nowrap"
+            >
+              {disabled ? (
+                <Loader2 className="h-4 w-4 spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              {disabled ? 'Investigating…' : 'Investigate'}
+            </button>
+          )}
+        </div>
       </form>
 
-      {/* Quick action buttons */}
-      <div className="flex flex-wrap gap-2">
-        {QUICK_QUERIES.map(({ label, query: q, icon: Icon, color }) => (
-          <button
+      {/* Quick action chips */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-micro text-[var(--text-faint)] mr-1">Try:</span>
+        {QUICK_QUERIES.map(({ label, query: q, icon, iconColor }) => (
+          <Chip
             key={label}
+            icon={icon}
+            label={label}
+            iconColor={iconColor}
             onClick={() => handleQuick(q)}
             disabled={disabled}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono',
-              'bg-slate-800/60 border border-slate-700/50 hover:border-slate-600 transition-colors',
-              'disabled:opacity-40 disabled:cursor-not-allowed',
-              'text-slate-400 hover:text-slate-200'
-            )}
-          >
-            <Icon className={cn('h-3 w-3', color)} />
-            {label}
-          </button>
+          />
         ))}
       </div>
     </div>

@@ -12,7 +12,7 @@ interface ApprovalCardProps {
 export function ApprovalCard({ event, onResolved }: ApprovalCardProps) {
   const [loading, setLoading] = useState<'approve' | 'reject' | null>(null)
   const [resolved, setResolved] = useState<'approved' | 'rejected' | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError]       = useState<string | null>(null)
 
   const handle = async (decision: 'approve' | 'reject') => {
     setLoading(decision)
@@ -28,82 +28,93 @@ export function ApprovalCard({ event, onResolved }: ApprovalCardProps) {
     }
   }
 
+  // Resolved compact receipt
+  if (resolved) {
+    return (
+      <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold fade-slide-in ${
+        resolved === 'approved'
+          ? 'bg-emerald-500/8 border-emerald-500/20 text-emerald-400'
+          : 'bg-red-500/8     border-red-500/20     text-red-400'
+      }`}>
+        {resolved === 'approved' ? (
+          <><ShieldCheck className="h-4 w-4" /> Approved — Executing</>
+        ) : (
+          <><ShieldX className="h-4 w-4" /> Rejected — No Action Taken</>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="rounded-lg border border-amber-500/50 bg-amber-950/30 p-4 shadow-lg shadow-amber-900/10">
+    <div className="rounded-xl border border-violet-500/40 bg-violet-500/5 p-5 glow-violet fade-slide-in">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-3">
-        <Lock className="h-4 w-4 text-amber-400" />
-        <span className="text-amber-400 font-semibold text-sm">Human Approval Required</span>
-        <span className="ml-auto text-xs text-slate-500">{formatTimestamp(event.timestamp)}</span>
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-violet-500/15 border border-violet-500/25">
+          <Lock className="h-4 w-4 text-violet-400" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-violet-300">Human Approval Required</p>
+          <p className="text-xs text-[var(--text-faint)] font-mono tabular-nums mt-0.5">{formatTimestamp(event.timestamp)}</p>
+        </div>
+        <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-violet-400">
+          <span className="h-2 w-2 rounded-full bg-violet-400 pulse-live" />
+          Pending
+        </span>
       </div>
 
       {/* Tool Info */}
-      <div className="mb-3 space-y-1">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-500 w-20 shrink-0">Tool</span>
-          <code className="text-cyan-300 bg-slate-800 px-2 py-0.5 rounded font-mono">{event.tool}</code>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-500 w-20 shrink-0">Server</span>
-          <code className="text-slate-300 bg-slate-800 px-2 py-0.5 rounded font-mono">{event.server}</code>
-        </div>
-        <div className="flex items-start gap-2 text-xs">
-          <span className="text-slate-500 w-20 shrink-0 mt-0.5">Expires</span>
-          <span className="text-slate-300">{formatTimestamp(event.expires_at)}</span>
-        </div>
+      <div className="mb-4 space-y-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] p-3">
+        {[
+          { label: 'Tool',    value: <code className="font-mono text-cyan-300">{event.tool}</code> },
+          { label: 'Server',  value: <code className="font-mono text-[var(--text-muted)]">{event.server}</code> },
+          { label: 'Expires', value: <span className="text-[var(--text-muted)] font-mono tabular-nums">{formatTimestamp(event.expires_at)}</span> },
+        ].map(({ label, value }) => (
+          <div key={label} className="flex items-center gap-3 text-xs">
+            <span className="text-[var(--text-faint)] w-16 shrink-0 font-medium">{label}</span>
+            {value}
+          </div>
+        ))}
       </div>
 
       {/* Payload */}
-      <div className="mb-3">
-        <p className="text-xs text-slate-500 mb-1.5">Proposed Payload</p>
-        <pre className="text-xs bg-slate-900 border border-slate-700 rounded p-3 text-slate-200 overflow-auto max-h-40 font-mono leading-relaxed">
+      <div className="mb-4">
+        <p className="text-micro mb-2">Proposed Payload</p>
+        <pre className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-[var(--text-muted)] overflow-auto max-h-40 font-mono leading-relaxed">
           {JSON.stringify(event.arguments, null, 2)}
         </pre>
       </div>
 
       {/* Hash */}
-      <div className="flex items-center gap-2 mb-4 p-2 rounded bg-slate-900/50 border border-slate-700/50">
-        <Hash className="h-3 w-3 text-slate-500 shrink-0" />
-        <span className="text-xs text-slate-500">SHA-256</span>
-        <code className="text-xs text-slate-400 font-mono truncate">{event.payload_hash}</code>
+      <div className="flex items-center gap-2 mb-5 p-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)]">
+        <Hash className="h-3 w-3 text-[var(--text-faint)] shrink-0" />
+        <span className="text-xs text-[var(--text-faint)] font-medium">SHA-256</span>
+        <code className="text-xs text-[var(--text-muted)] font-mono truncate">{event.payload_hash}</code>
       </div>
 
       {error && (
-        <p className="mb-3 text-xs text-red-400 bg-red-900/20 border border-red-700/30 rounded px-3 py-2">{error}</p>
+        <p className="mb-4 text-xs text-red-400 bg-red-500/8 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
       )}
 
-      {resolved ? (
-        <div className={`flex items-center gap-2 text-sm font-semibold justify-center py-2 rounded ${
-          resolved === 'approved'
-            ? 'text-emerald-400 bg-emerald-900/20'
-            : 'text-red-400 bg-red-900/20'
-        }`}>
-          {resolved === 'approved' ? (
-            <><ShieldCheck className="h-4 w-4" /> Approved — Executing</>
-          ) : (
-            <><ShieldX className="h-4 w-4" /> Rejected — No Action Taken</>
-          )}
-        </div>
-      ) : (
-        <div className="flex gap-3">
-          <button
-            onClick={() => handle('approve')}
-            disabled={loading !== null}
-            className="flex-1 flex items-center justify-center gap-2 py-2 rounded bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-sm font-semibold text-white transition-colors"
-          >
-            <ShieldCheck className="h-4 w-4" />
-            {loading === 'approve' ? 'Approving…' : 'Approve'}
-          </button>
-          <button
-            onClick={() => handle('reject')}
-            disabled={loading !== null}
-            className="flex-1 flex items-center justify-center gap-2 py-2 rounded bg-red-800 hover:bg-red-700 disabled:opacity-50 text-sm font-semibold text-white transition-colors"
-          >
-            <ShieldX className="h-4 w-4" />
-            {loading === 'reject' ? 'Rejecting…' : 'Reject'}
-          </button>
-        </div>
-      )}
+      {/* Actions */}
+      <div className="flex gap-3">
+        <button
+          onClick={() => handle('reject')}
+          disabled={loading !== null}
+          autoFocus
+          className="btn-danger flex-1 flex items-center justify-center gap-2 py-2.5 text-sm"
+        >
+          <ShieldX className="h-4 w-4" />
+          {loading === 'reject' ? 'Rejecting…' : 'Reject'}
+        </button>
+        <button
+          onClick={() => handle('approve')}
+          disabled={loading !== null}
+          className="btn-primary flex-1 flex items-center justify-center gap-2 py-2.5 text-sm"
+        >
+          <ShieldCheck className="h-4 w-4" />
+          {loading === 'approve' ? 'Approving…' : 'Approve'}
+        </button>
+      </div>
     </div>
   )
 }
