@@ -25,7 +25,6 @@ from incident_agent.approvers import (
     ApprovalStatus,
     CliApprover,
     ScriptedApprover,
-    WebApprover,
     compute_canonical_payload_hash,
 )
 from incident_agent.cancellation import CancellationToken
@@ -401,16 +400,3 @@ async def test_approver_implementations():
     dec1 = await scripted.request_decision(rec1)
     assert dec1 == "approve"
     assert rec1.approval_source == ApprovalSource.SCRIPTED
-
-    # Web Approver
-    web = WebApprover(service)
-    rec2 = await service.create_request("run_w", "tc_w", "tool", {"b": 2})
-
-    async def async_resolve():
-        await asyncio.sleep(0.01)
-        web.resolve_waiter(rec2.approval_id, "reject")
-
-    asyncio.create_task(async_resolve())
-    dec2 = await web.request_decision(rec2)
-    assert dec2 == "reject"
-    assert rec2.approval_source == ApprovalSource.WEB

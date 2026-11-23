@@ -1,2 +1,0 @@
-[console_scripts]
-incident-agent = incident_agent.cli:run_cli

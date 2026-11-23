@@ -1,5 +1,5 @@
 """
-agent-client/tests/test_server.py
+web-backend/tests/test_server.py
 
 Integration tests for the FastAPI backend and Server-Sent Events (SSE) streaming.
 Verifies:
@@ -17,13 +17,7 @@ from pathlib import Path
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-# Add agent-client to path for server and runs (web-layer, not yet moved)
-import sys
-current_dir = Path(__file__).resolve().parent.parent
-if str(current_dir) not in sys.path:
-    sys.path.insert(0, str(current_dir))
-
-from server import app
+from app.server import app
 
 
 @asynccontextmanager

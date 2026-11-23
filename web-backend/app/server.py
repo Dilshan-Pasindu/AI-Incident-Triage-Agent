@@ -1,5 +1,5 @@
 """
-agent-client/server.py
+web-backend/app/server.py
 
 FastAPI Web Backend for the Incident Triage & Release Readiness AI Agent.
 Exposes REST and Server-Sent Events (SSE) streaming endpoints with
@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Header, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
@@ -26,7 +27,7 @@ from incident_agent.llm import GrokLlmClient, MockLlmClient, get_llm_client
 from incident_agent.mcp_client import MCPHub
 from incident_agent.paths import MOCK_DATA_DIR, WORKSPACE_DIR, RUST_BINARY, TRACE_FILE, EVAL_FILE
 from incident_agent.tracing import TraceLogger
-from runs import RunContext, RunManager, RunState
+from app.runs import RunContext, RunManager, RunState
 
 repo_root = MOCK_DATA_DIR.parent
 mock_data_dir = MOCK_DATA_DIR
@@ -289,10 +290,16 @@ async def get_benchmarks():
     return {"content": content}
 
 
+# Mount static frontend build if present
+dist_dir = repo_root / "web-ui" / "dist"
+if dist_dir.exists():
+    app.mount("/", StaticFiles(directory=str(dist_dir), html=True), name="static")
+
+
 def start_server(host: str = "0.0.0.0", port: int = 8000):
     """Entrypoint to launch the API server via uvicorn."""
     import uvicorn
-    uvicorn.run("server:app", host=host, port=port, reload=False)
+    uvicorn.run("app.server:app", host=host, port=port, reload=False)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 """
-agent-client/runs.py
+web-backend/app/runs.py
 
 Execution Run Manager for the Incident Triage Web Backend.
 Manages asynchronous agent runs, Server-Sent Events (SSE) buffering,
@@ -16,7 +16,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 import uuid
 
 from incident_agent.agent import run_query
-from incident_agent.approvers import ApprovalRecord, ApprovalService, ApprovalSource, WebApprover
+from incident_agent.approvers import ApprovalRecord, ApprovalService, ApprovalSource
 from incident_agent.cancellation import CancellationToken
 from incident_agent.events import (
     ApprovalRequiredEvent,
@@ -29,6 +29,8 @@ from incident_agent.events import (
 from incident_agent.llm import LlmClient, get_llm_client
 from incident_agent.mcp_client import MCPHub
 from incident_agent.tracing import TraceLogger
+
+from app.approver import WebApprover
 
 
 class RunState(str, Enum):
