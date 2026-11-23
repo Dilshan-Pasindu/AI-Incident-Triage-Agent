@@ -204,6 +204,15 @@ class RunManager:
                 ctx.state = RunState.FAILED
                 ctx.error = str(e)
                 ctx.ended_at = datetime.now(timezone.utc).isoformat()
+                ctx.add_event(
+                    RunStoppedEvent(
+                        run_id=run_id,
+                        event_id=len(ctx.events) + 1,
+                        reason="error",
+                        iterations=1,
+                        error=str(e),
+                    )
+                )
             finally:
                 ctx.close_subscribers()
 

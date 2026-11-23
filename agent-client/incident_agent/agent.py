@@ -478,18 +478,21 @@ async def run_query(
                 )
                 return final_text
 
+            def _format_tc(tc: ToolCallItem) -> Dict[str, Any]:
+                d: Dict[str, Any] = {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.name, "arguments": tc.arguments_json},
+                }
+                if tc.extra_content:
+                    d["extra_content"] = tc.extra_content
+                return d
+
             # Append assistant message with validated tool calls to history
             assistant_msg: Dict[str, Any] = {
                 "role": "assistant",
                 "content": turn.text,
-                "tool_calls": [
-                    {
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {"name": tc.name, "arguments": tc.arguments_json},
-                    }
-                    for tc in turn.tool_calls
-                ],
+                "tool_calls": [_format_tc(tc) for tc in turn.tool_calls],
             }
             messages.append(assistant_msg)
 

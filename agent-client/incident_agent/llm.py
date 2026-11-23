@@ -31,6 +31,7 @@ class ToolCallItem:
     id: str
     name: str
     arguments_json: str
+    extra_content: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -55,6 +56,12 @@ def is_retryable_error(exc: BaseException) -> bool:
 def sanitize_error_message(exc: Exception) -> str:
     """Sanitize provider errors so API keys and headers are never exposed."""
     msg = str(exc)
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        if "error" in body and isinstance(body["error"], dict) and "message" in body["error"]:
+            msg = f"{msg} - {body['error']['message']}"
+        elif "message" in body:
+            msg = f"{msg} - {body['message']}"
     # Redact xai- or sk- keys
     msg = re.sub(r"(?:xai|sk)-[a-zA-Z0-9_-]{10,}", "[REDACTED_API_KEY]", msg)
     # Redact Google Gemini AIza keys
@@ -113,11 +120,13 @@ class GrokLlmClient:
             tool_calls: List[ToolCallItem] = []
             if msg.tool_calls:
                 for tc in msg.tool_calls:
+                    extra = getattr(tc, "extra_content", None) or (getattr(tc, "model_extra", {}) or {}).get("extra_content")
                     tool_calls.append(
                         ToolCallItem(
                             id=tc.id,
                             name=tc.function.name,
                             arguments_json=tc.function.arguments,
+                            extra_content=extra,
                         )
                     )
 
@@ -178,11 +187,13 @@ class GeminiLlmClient:
             tool_calls: List[ToolCallItem] = []
             if msg.tool_calls:
                 for tc in msg.tool_calls:
+                    extra = getattr(tc, "extra_content", None) or (getattr(tc, "model_extra", {}) or {}).get("extra_content")
                     tool_calls.append(
                         ToolCallItem(
                             id=tc.id,
                             name=tc.function.name,
                             arguments_json=tc.function.arguments,
+                            extra_content=extra,
                         )
                     )
 

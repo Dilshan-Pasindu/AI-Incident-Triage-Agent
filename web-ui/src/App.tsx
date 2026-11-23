@@ -220,17 +220,24 @@ export default function App() {
               {/* Run status bar */}
               {activeRun && (
                 <div
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl border text-xs fade-slide-in"
+                  className="flex flex-col gap-1.5 px-4 py-2.5 rounded-xl border text-xs fade-slide-in"
                   style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
                 >
-                  <RunStatusIcon state={activeRun.state} />
-                  <span className={cn('font-semibold capitalize', runStateColor(activeRun.state))}>
-                    {activeRun.state.replace('_', ' ')}
-                  </span>
-                  <span className="text-[var(--text-faint)] truncate">{activeRun.query}</span>
-                  <code className="ml-auto text-[var(--text-faint)] font-mono shrink-0 tabular-nums">
-                    {activeRun.run_id.slice(-8)}
-                  </code>
+                  <div className="flex items-center gap-3">
+                    <RunStatusIcon state={activeRun.state} />
+                    <span className={cn('font-semibold capitalize', runStateColor(activeRun.state))}>
+                      {activeRun.state.replace('_', ' ')}
+                    </span>
+                    <span className="text-[var(--text-faint)] truncate">{activeRun.query}</span>
+                    <code className="ml-auto text-[var(--text-faint)] font-mono shrink-0 tabular-nums">
+                      {activeRun.run_id.slice(-8)}
+                    </code>
+                  </div>
+                  {activeRun.error && (
+                    <div className="text-red-400 font-mono text-[11px] bg-red-500/10 border border-red-500/20 rounded px-2.5 py-1.5 mt-0.5">
+                      {activeRun.error}
+                    </div>
+                  )}
                 </div>
               )}
 
