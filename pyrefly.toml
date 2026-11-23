@@ -1,0 +1,16 @@
+project-includes = [
+    "agent-client",
+    "web-backend",
+    "scripts",
+]
+project-excludes = [
+    "**/node_modules",
+    "**/__pycache__",
+    "agent-client/.venv",
+]
+search-path = [
+    "agent-client",
+    "web-backend",
+    "scripts",
+]
+infer-with-first-use = false
