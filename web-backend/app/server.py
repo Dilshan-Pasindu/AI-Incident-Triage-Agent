@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from incident_agent.approvers import ApprovalService
-from incident_agent.llm import GrokLlmClient, LlmClient, MockLlmClient
+from incident_agent.llm import GeminiLlmClient, GrokLlmClient, LlmClient, MockLlmClient
 from incident_agent.mcp_client import MCPHub
 from incident_agent.paths import MOCK_DATA_DIR, WORKSPACE_DIR, RUST_BINARY, TRACE_FILE, EVAL_FILE
 from incident_agent.tracing import TraceLogger
@@ -147,9 +147,12 @@ async def create_run(req: CreateRunRequest):
 
     llm: Optional[LlmClient] = None
     if req.model:
-        if req.model.lower() == "mock":
+        model_lower = req.model.lower()
+        if model_lower == "mock":
             llm = MockLlmClient()
-        elif req.model.lower() != "default":
+        elif "gemini" in model_lower:
+            llm = GeminiLlmClient(model=req.model)
+        elif model_lower != "default":
             llm = GrokLlmClient(model=req.model)
 
     ctx = await run_manager.start_run(query=query, llm=llm, model_name=req.model)

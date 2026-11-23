@@ -57,6 +57,8 @@ def sanitize_error_message(exc: Exception) -> str:
     msg = str(exc)
     # Redact xai- or sk- keys
     msg = re.sub(r"(?:xai|sk)-[a-zA-Z0-9_-]{10,}", "[REDACTED_API_KEY]", msg)
+    # Redact Google Gemini AIza keys
+    msg = re.sub(r"AIza[0-9A-Za-z-_]{35}", "[REDACTED_API_KEY]", msg)
     # Redact Bearer tokens
     msg = re.sub(r"Bearer\s+[a-zA-Z0-9_\-\.]+", "Bearer [REDACTED_TOKEN]", msg, flags=re.IGNORECASE)
     # Strip headers if present in error representation
@@ -128,6 +130,70 @@ class GrokLlmClient:
         except Exception as e:
             sanitized = sanitize_error_message(e)
             raise RuntimeError(f"Grok API error: {sanitized}") from None
+
+    async def step(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> LlmTurn:
+        return await self._step_with_retry(messages, tools)
+
+
+class GeminiLlmClient:
+    """Production LLM adapter for Google Gemini via its official OpenAI-compatible endpoint."""
+
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+        from openai import AsyncOpenAI
+
+        self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
+        if not self.api_key:
+            raise ValueError("GEMINI_API_KEY environment variable is required for GeminiLlmClient.")
+
+        self.model = model or os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+        self.client = AsyncOpenAI(
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            api_key=self.api_key,
+        )
+
+    @retry(
+        retry=retry_if_exception(is_retryable_error),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        reraise=True,
+    )
+    async def _step_with_retry(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> LlmTurn:
+        start_time = time.perf_counter()
+        try:
+            kwargs: Dict[str, Any] = {
+                "model": self.model,
+                "messages": messages,
+            }
+            if tools:
+                kwargs["tools"] = tools
+                kwargs["tool_choice"] = "auto"
+
+            response = await self.client.chat.completions.create(**kwargs)
+            latency_ms = (time.perf_counter() - start_time) * 1000
+
+            choice = response.choices[0]
+            msg = choice.message
+
+            tool_calls: List[ToolCallItem] = []
+            if msg.tool_calls:
+                for tc in msg.tool_calls:
+                    tool_calls.append(
+                        ToolCallItem(
+                            id=tc.id,
+                            name=tc.function.name,
+                            arguments_json=tc.function.arguments,
+                        )
+                    )
+
+            return LlmTurn(
+                text=msg.content,
+                tool_calls=tool_calls,
+                latency_ms=latency_ms,
+            )
+
+        except Exception as e:
+            sanitized = sanitize_error_message(e)
+            raise RuntimeError(f"Gemini API error: {sanitized}") from None
 
     async def step(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> LlmTurn:
         return await self._step_with_retry(messages, tools)
@@ -388,8 +454,13 @@ class MockLlmClient:
 
 
 def get_llm_client() -> LlmClient:
-    """Factory returning GrokLlmClient if valid XAI_API_KEY is present, else MockLlmClient."""
-    api_key = os.environ.get("XAI_API_KEY", "")
-    if api_key and not api_key.startswith("xai-your-api-key"):
+    """Factory returning GeminiLlmClient or GrokLlmClient if valid API key is present, else MockLlmClient."""
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    if gemini_key and not gemini_key.startswith("AIzaSy-placeholder"):
+        return GeminiLlmClient()
+
+    xai_key = os.environ.get("XAI_API_KEY", "")
+    if xai_key and not xai_key.startswith("xai-your-api-key"):
         return GrokLlmClient()
+
     return MockLlmClient()
