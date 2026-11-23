@@ -45,7 +45,7 @@ from incident_agent.guardrails import (
     validate_tool_arguments,
     validate_tool_batch,
 )
-from incident_agent.llm import LlmClient, LlmTurn, get_llm_client
+from incident_agent.llm import LlmClient, LlmTurn, ToolCallItem, get_llm_client
 from incident_agent.mcp_client import MCPHub
 from incident_agent.tracing import TraceLogger, redact
 
