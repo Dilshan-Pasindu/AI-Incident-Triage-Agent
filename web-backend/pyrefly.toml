@@ -1,0 +1,6 @@
+search-path = [
+    "../agent-client",
+    ".",
+]
+python-interpreter-path = "../.venv/bin/python"
+infer-with-first-use = false

@@ -3,5 +3,7 @@
   "python.analysis.extraPaths": [
     "${workspaceFolder}/agent-client",
     "${workspaceFolder}/web-backend"
-  ]
+  ],
+  "python.pyrefly.typeCheckingMode": "auto"
 }
+
