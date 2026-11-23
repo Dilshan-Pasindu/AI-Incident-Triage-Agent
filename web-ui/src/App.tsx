@@ -357,45 +357,53 @@ export default function App() {
                 <p className="text-sm text-[var(--text-faint)]">No trace records yet. Run an investigation first.</p>
               </div>
             ) : (
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-                {/* Table header */}
-                <div className="grid grid-cols-[1fr_80px_80px_1fr_90px] gap-4 px-4 py-2.5 border-b border-[var(--border)] bg-[var(--surface-2)] sticky top-14">
-                  {['Tool', 'Status', 'Time', 'Output Preview', 'Run'].map(h => (
-                    <span key={h} className="text-micro">{h}</span>
-                  ))}
-                </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-sm">
+                <div className="max-h-[calc(100vh-13rem)] min-h-[420px] overflow-y-auto overflow-x-auto">
+                  <div className="min-w-[760px]">
+                    {/* Table header */}
+                    <div className="sticky top-0 z-10 grid grid-cols-[220px_90px_90px_1fr_90px] gap-4 px-4 py-3 border-b border-[var(--border)] bg-[var(--surface-2)] shadow-sm">
+                      <span className="text-micro">Tool</span>
+                      <span className="text-micro">Status</span>
+                      <span className="text-micro">Time</span>
+                      <span className="text-micro">Output Preview</span>
+                      <span className="text-micro text-right">Run</span>
+                    </div>
 
-                <div className="divide-y divide-[var(--border)] max-h-[70vh] overflow-y-auto">
-                  {traces.map((trace, i) => {
-                    const status = String(trace['status'] ?? '')
-                    const isOk       = status === 'ok'
-                    const isRejected = status === 'rejected'
-                    return (
-                      <div
-                        key={i}
-                        className="grid grid-cols-[1fr_80px_80px_1fr_90px] gap-4 px-4 py-3 hover:bg-[var(--surface-hover)] transition-colors"
-                      >
-                        <code className="text-xs font-mono text-cyan-400 truncate">{String(trace['tool'] ?? '')}</code>
-                        <span>
-                          <Badge
-                            variant={isOk ? 'green' : isRejected ? 'amber' : 'red'}
-                            className="text-[10px]"
+                    <div className="divide-y divide-[var(--border)]">
+                      {traces.map((trace, i) => {
+                        const status = String(trace['status'] ?? '')
+                        const isOk       = status === 'ok'
+                        const isRejected = status === 'rejected'
+                        return (
+                          <div
+                            key={i}
+                            className="grid grid-cols-[220px_90px_90px_1fr_90px] gap-4 px-4 py-3 hover:bg-[var(--surface-hover)] transition-colors items-center"
                           >
-                            {status}
-                          </Badge>
-                        </span>
-                        <span className="text-xs text-[var(--text-faint)] font-mono tabular-nums">
-                          {String(trace['ts'] ?? '').slice(11, 19)}
-                        </span>
-                        <pre className="text-xs text-[var(--text-muted)] font-mono truncate">
-                          {String(trace['output_preview'] ?? '').slice(0, 100)}
-                        </pre>
-                        <code className="text-[10px] text-[var(--text-faint)] font-mono tabular-nums truncate">
-                          {String(trace['run_id'] ?? '').slice(-8)}
-                        </code>
-                      </div>
-                    )
-                  })}
+                            <code className="text-xs font-mono text-cyan-400 truncate" title={String(trace['tool'] ?? '')}>
+                              {String(trace['tool'] ?? '')}
+                            </code>
+                            <div>
+                              <Badge
+                                variant={isOk ? 'green' : isRejected ? 'amber' : 'red'}
+                                className="text-[10px]"
+                              >
+                                {status}
+                              </Badge>
+                            </div>
+                            <span className="text-xs text-[var(--text-faint)] font-mono tabular-nums">
+                              {String(trace['ts'] ?? '').slice(11, 19)}
+                            </span>
+                            <pre className="text-xs text-[var(--text-muted)] font-mono truncate max-w-full">
+                              {String(trace['output_preview'] ?? '').slice(0, 120)}
+                            </pre>
+                            <code className="text-[10px] text-[var(--text-faint)] font-mono tabular-nums truncate text-right">
+                              {String(trace['run_id'] ?? '').slice(-8)}
+                            </code>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
