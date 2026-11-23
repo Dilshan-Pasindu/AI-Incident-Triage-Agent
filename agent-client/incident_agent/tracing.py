@@ -19,6 +19,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from incident_agent.paths import TRACE_FILE as _DEFAULT_TRACE_FILE
+
 # Secret detection patterns
 RE_API_KEY = re.compile(r"(?:xai|sk)-[a-zA-Z0-9_\-]{16,}")
 RE_BEARER = re.compile(r"Bearer\s+[a-zA-Z0-9_\-\.]+", re.IGNORECASE)
@@ -90,7 +92,7 @@ class TraceLogger:
         if trace_file_path:
             self.trace_file = Path(trace_file_path).resolve()
         else:
-            self.trace_file = Path("agent_traces.jsonl").resolve()
+            self.trace_file = _DEFAULT_TRACE_FILE
 
         self._lock = asyncio.Lock()
 

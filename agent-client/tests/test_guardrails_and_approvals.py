@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-from approvers import (
+from incident_agent.approvers import (
     ApprovalRecord,
     ApprovalService,
     ApprovalSource,
@@ -28,15 +28,15 @@ from approvers import (
     WebApprover,
     compute_canonical_payload_hash,
 )
-from cancellation import CancellationToken
-from guardrails import (
+from incident_agent.cancellation import CancellationToken
+from incident_agent.guardrails import (
     check_prompt_injection,
     sanitize_fs_arguments,
     validate_and_canonicalize_path,
     validate_tool_arguments,
     validate_tool_batch,
 )
-from tracing import TraceLogger, redact, redact_string
+from incident_agent.tracing import TraceLogger, redact, redact_string
 
 
 # ==============================================================================

@@ -35,15 +35,11 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-# Add agent-client to path if needed
-current_dir = Path(__file__).resolve().parent
-if str(current_dir) not in sys.path:
-    sys.path.insert(0, str(current_dir))
-
-from agent import run_query
-from approvers import ApprovalService, ScriptedApprover
-from cancellation import CancellationToken
-from events import (
+# Add agent-client to path if needed — no longer needed with package install
+from incident_agent.agent import run_query
+from incident_agent.approvers import ApprovalService, ScriptedApprover
+from incident_agent.cancellation import CancellationToken
+from incident_agent.events import (
     ApprovalRequiredEvent,
     ApprovalResolvedEvent,
     BaseAgentEvent,
@@ -53,9 +49,9 @@ from events import (
     ToolFinishedEvent,
     ToolStartedEvent,
 )
-from llm import GrokLlmClient, LlmClient, MockLlmClient
-from mcp_client import MCPHub
-from tracing import TraceLogger
+from incident_agent.llm import GrokLlmClient, LlmClient, MockLlmClient
+from incident_agent.mcp_client import MCPHub
+from incident_agent.tracing import TraceLogger
 
 console = Console()
 
@@ -481,11 +477,7 @@ async def main_async():
     parser.add_argument("--no-regen", action="store_true", help="Skip regenerating mock data timestamps")
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parent.parent
-    mock_data_dir = repo_root / "mock_data"
-    workspace_dir = mock_data_dir / "workspace"
-    rust_binary = repo_root / "mcp-server" / "target" / "release" / "ops-telemetry-mcp"
-    trace_path = repo_root / "agent_traces.jsonl"
+    from incident_agent.paths import REPO_ROOT as repo_root, MOCK_DATA_DIR as mock_data_dir, WORKSPACE_DIR as workspace_dir, RUST_BINARY as rust_binary, TRACE_FILE as trace_path
 
     # 1. Regenerate timestamps unless --no-regen is set
     if not args.no_regen:

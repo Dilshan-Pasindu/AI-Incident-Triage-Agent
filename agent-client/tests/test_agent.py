@@ -7,11 +7,11 @@ and multi-turn incident triage execution.
 
 import os
 import pytest
-from agent import run_query, wrap_tool_output
-from cancellation import CancellationToken, CancelledError
-from events import EventType
-from llm import MockLlmClient
-from mcp_client import MCPHub
+from incident_agent.agent import run_query, wrap_tool_output
+from incident_agent.cancellation import CancellationToken, CancelledError
+from incident_agent.events import EventType
+from incident_agent.llm import MockLlmClient
+from incident_agent.mcp_client import MCPHub
 
 
 @pytest.fixture

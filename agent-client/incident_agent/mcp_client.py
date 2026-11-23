@@ -30,6 +30,8 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.types import Tool as McpTool, Resource as McpResource, ResourceTemplate as McpResourceTemplate
 
+from incident_agent.paths import MOCK_DATA_DIR
+
 TOOL_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
 # Configurable Read-Only Filesystem Allowlist
@@ -298,11 +300,11 @@ class MCPHub:
     ):
         self.ops_binary_path = os.path.abspath(ops_binary_path)
         self.workspace_dir = os.path.abspath(workspace_dir)
-        self.data_dir = os.path.abspath(data_dir) if data_dir else os.path.abspath("mock_data")
+        self.data_dir = os.path.abspath(data_dir) if data_dir else str(MOCK_DATA_DIR)
 
         # Resolve filesystem server runner
         # Check for locally installed npm package binary first, fall back to npx
-        local_fs_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "node_modules/.bin/mcp-server-filesystem"))
+        local_fs_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "node_modules/.bin/mcp-server-filesystem"))
         if os.path.exists(local_fs_bin):
             fs_command = local_fs_bin
             fs_args = [self.workspace_dir]

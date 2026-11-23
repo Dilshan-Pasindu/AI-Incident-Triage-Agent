@@ -20,9 +20,9 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 
-from agent import run_query
-from cancellation import CancellationToken
-from events import (
+from incident_agent.agent import run_query
+from incident_agent.cancellation import CancellationToken
+from incident_agent.events import (
     BaseAgentEvent,
     EventType,
     FinalAnswerEvent,
@@ -33,8 +33,10 @@ from events import (
     ToolStartedEvent,
     ToolStatus,
 )
-from mcp_client import MCPHub
+from incident_agent.mcp_client import MCPHub
 
+from incident_agent.paths import RUST_BINARY, MOCK_DATA_DIR, WORKSPACE_DIR
+from dotenv import load_dotenv
 load_dotenv()
 console = Console()
 
@@ -108,10 +110,10 @@ async def main():
     parser.add_argument("query", nargs="*", help="Query to run non-interactively")
     args = parser.parse_args()
 
-    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    ops_bin = os.path.join(root, "mcp-server/target/release/ops-telemetry-mcp")
-    workspace = os.path.join(root, "mock_data/workspace")
-    data_dir = os.path.join(root, "mock_data")
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    ops_bin = str(RUST_BINARY)
+    workspace = str(WORKSPACE_DIR)
+    data_dir = str(MOCK_DATA_DIR)
 
     console.print(
         Panel.fit(
@@ -170,5 +172,10 @@ async def main():
         console.print("[green]✓ Clean shutdown complete.[/green]")
 
 
-if __name__ == "__main__":
+def run_cli() -> None:
+    """Console script entry point."""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    run_cli()

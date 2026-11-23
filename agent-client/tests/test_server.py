@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-# Add agent-client to path
+# Add agent-client to path for server and runs (web-layer, not yet moved)
 import sys
 current_dir = Path(__file__).resolve().parent.parent
 if str(current_dir) not in sys.path:

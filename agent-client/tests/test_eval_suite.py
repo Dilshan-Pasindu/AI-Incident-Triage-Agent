@@ -11,10 +11,10 @@ import tempfile
 from pathlib import Path
 import pytest
 
-from eval_suite import SCENARIOS, EvaluationRunner, generate_markdown_report
-from llm import MockLlmClient
-from mcp_client import MCPHub
-from tracing import TraceLogger
+from incident_agent.eval_suite import SCENARIOS, EvaluationRunner, generate_markdown_report
+from incident_agent.llm import MockLlmClient
+from incident_agent.mcp_client import MCPHub
+from incident_agent.tracing import TraceLogger
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ async def test_all_scenarios_pass_evaluation(repo_paths):
 
 def test_markdown_report_generation(repo_paths):
     """Verify that generate_markdown_report produces expected sections and content."""
-    from eval_suite import RunMetric
+    from incident_agent.eval_suite import RunMetric
 
     dummy_metrics = [
         RunMetric(

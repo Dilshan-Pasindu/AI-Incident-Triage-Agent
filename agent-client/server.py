@@ -21,18 +21,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
-from approvers import ApprovalService
-from llm import GrokLlmClient, MockLlmClient, get_llm_client
-from mcp_client import MCPHub
+from incident_agent.approvers import ApprovalService
+from incident_agent.llm import GrokLlmClient, MockLlmClient, get_llm_client
+from incident_agent.mcp_client import MCPHub
+from incident_agent.paths import MOCK_DATA_DIR, WORKSPACE_DIR, RUST_BINARY, TRACE_FILE, EVAL_FILE
+from incident_agent.tracing import TraceLogger
 from runs import RunContext, RunManager, RunState
-from tracing import TraceLogger
 
-repo_root = Path(__file__).resolve().parent.parent
-mock_data_dir = repo_root / "mock_data"
-workspace_dir = mock_data_dir / "workspace"
-rust_binary = repo_root / "mcp-server" / "target" / "release" / "ops-telemetry-mcp"
-trace_file = repo_root / "agent_traces.jsonl"
-eval_file = repo_root / "eval_results.md"
+repo_root = MOCK_DATA_DIR.parent
+mock_data_dir = MOCK_DATA_DIR
+workspace_dir = WORKSPACE_DIR
+rust_binary = RUST_BINARY
+trace_file = TRACE_FILE
+eval_file = EVAL_FILE
 
 # Global components
 hub: Optional[MCPHub] = None

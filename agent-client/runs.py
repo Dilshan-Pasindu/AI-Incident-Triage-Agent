@@ -15,10 +15,10 @@ from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
 import uuid
 
-from agent import run_query
-from approvers import ApprovalRecord, ApprovalService, ApprovalSource, WebApprover
-from cancellation import CancellationToken
-from events import (
+from incident_agent.agent import run_query
+from incident_agent.approvers import ApprovalRecord, ApprovalService, ApprovalSource, WebApprover
+from incident_agent.cancellation import CancellationToken
+from incident_agent.events import (
     ApprovalRequiredEvent,
     ApprovalResolvedEvent,
     BaseAgentEvent,
@@ -26,9 +26,9 @@ from events import (
     RunStartedEvent,
     RunStoppedEvent,
 )
-from llm import LlmClient, get_llm_client
-from mcp_client import MCPHub
-from tracing import TraceLogger
+from incident_agent.llm import LlmClient, get_llm_client
+from incident_agent.mcp_client import MCPHub
+from incident_agent.tracing import TraceLogger
 
 
 class RunState(str, Enum):
