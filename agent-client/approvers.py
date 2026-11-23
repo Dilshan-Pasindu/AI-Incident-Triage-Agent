@@ -176,6 +176,10 @@ class ApprovalService:
         self._records: Dict[str, ApprovalRecord] = {}
         self._lock = asyncio.Lock()
 
+    def get_records_for_run(self, run_id: str) -> List[ApprovalRecord]:
+        """Return all approval records matching the run_id."""
+        return [r for r in self._records.values() if r.run_id == run_id]
+
     async def create_request(
         self,
         run_id: str,

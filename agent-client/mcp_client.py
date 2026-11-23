@@ -365,6 +365,10 @@ class MCPHub:
             self._started = False
             self.tool_registry.clear()
 
+    async def stop(self) -> None:
+        """Alias for close()."""
+        await self.close()
+
     def get_connection(self, server_name: str) -> ServerConnection:
         if server_name not in self.connections:
             raise KeyError(f"Unknown server connection: '{server_name}'")
