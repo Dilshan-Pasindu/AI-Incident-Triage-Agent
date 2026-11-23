@@ -189,8 +189,13 @@ function EventRow({ event, onApprovalResolved }: {
 export function EventTimeline({ events, onApprovalResolved }: EventTimelineProps) {
   if (events.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12 text-slate-600 text-sm">
-        Waiting for events…
+      <div className="flex flex-col items-center justify-center py-16 text-slate-500 text-sm gap-3">
+        <img
+          src="/logo.png"
+          alt="Agent Logo"
+          className="h-16 w-16 opacity-25 object-contain grayscale hover:grayscale-0 hover:opacity-50 transition-all duration-300"
+        />
+        <p className="font-mono text-xs text-slate-500">Waiting for investigation events to stream…</p>
       </div>
     )
   }

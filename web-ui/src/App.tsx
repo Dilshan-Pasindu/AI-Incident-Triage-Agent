@@ -99,13 +99,15 @@ export default function App() {
       {/* Top Nav */}
       <header className="border-b border-slate-800/60 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
-              <Terminal className="h-4 w-4 text-cyan-400" />
-            </div>
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Incident Triage Agent Logo"
+              className="h-8 w-8 object-contain rounded-md border border-cyan-500/30 bg-slate-900 shadow-sm shadow-cyan-500/20"
+            />
             <div>
               <h1 className="text-sm font-bold text-cyan-400 text-glow-cyan leading-none">Incident Triage Agent</h1>
-              <p className="text-xs text-slate-600 leading-none mt-0.5">MCP-Powered Autonomous Investigation</p>
+              <p className="text-xs text-slate-500 leading-none mt-1">MCP-Powered Autonomous Investigation</p>
             </div>
           </div>
 

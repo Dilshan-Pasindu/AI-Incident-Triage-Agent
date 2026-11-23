@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="AI Incident Triage & Release Readiness Agent Logo" width="140" />
+</p>
+
 # AI Incident Triage & Release Readiness Agent with MCP
 
 [![CI Tests](https://img.shields.io/badge/tests-29%20passed-brightgreen.svg)](agent-client/tests/)
