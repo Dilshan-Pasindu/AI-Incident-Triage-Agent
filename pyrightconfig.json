@@ -1,0 +1,18 @@
+{
+  "include": [
+    "agent-client",
+    "web-backend",
+    "scripts"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "agent-client/.venv"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "extraPaths": [
+    "agent-client",
+    "web-backend"
+  ]
+}
