@@ -145,7 +145,8 @@ class GeminiLlmClient:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY environment variable is required for GeminiLlmClient.")
 
-        self.model = model or os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+        raw_model = model or os.environ.get("GEMINI_MODEL", "gemini-4-hydrogen")
+        self.model = raw_model if raw_model.startswith("models/") else f"models/{raw_model}"
         self.client = AsyncOpenAI(
             base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
             api_key=self.api_key,

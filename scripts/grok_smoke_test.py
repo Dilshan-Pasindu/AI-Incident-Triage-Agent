@@ -80,6 +80,8 @@ def test_grok_smoke():
         return
 
     model = os.environ.get("LLM_MODEL", default_model)
+    if provider_name == "Google Gemini" and not model.startswith("models/"):
+        model = f"models/{model}"
 
     print("==================================================")
     print(f"LLM API SMOKE TEST ({provider_name} Integration)")
