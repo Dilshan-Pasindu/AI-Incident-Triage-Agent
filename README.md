@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="AI Incident Triage & Release Readiness Agent Logo" width="140" />
+  <img src="assets/logo.png" alt="AI Incident Triage & Release Readiness Agent Logo" width="160" />
 </p>
 
 # AI Incident Triage & Release Readiness Agent with MCP

@@ -103,7 +103,7 @@ export default function App() {
             <img
               src="/logo.png"
               alt="Incident Triage Agent Logo"
-              className="h-8 w-8 object-contain rounded-md border border-cyan-500/30 bg-slate-900 shadow-sm shadow-cyan-500/20"
+              className="h-9 w-9 object-contain drop-shadow-[0_0_10px_rgba(6,182,212,0.45)] transition-transform hover:scale-105 duration-200"
             />
             <div>
               <h1 className="text-sm font-bold text-cyan-400 text-glow-cyan leading-none">Incident Triage Agent</h1>

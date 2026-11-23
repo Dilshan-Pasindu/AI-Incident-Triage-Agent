@@ -193,7 +193,7 @@ export function EventTimeline({ events, onApprovalResolved }: EventTimelineProps
         <img
           src="/logo.png"
           alt="Agent Logo"
-          className="h-16 w-16 opacity-25 object-contain grayscale hover:grayscale-0 hover:opacity-50 transition-all duration-300"
+          className="h-20 w-20 opacity-30 object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.25)] hover:opacity-60 transition-all duration-300"
         />
         <p className="font-mono text-xs text-slate-500">Waiting for investigation events to stream…</p>
       </div>
