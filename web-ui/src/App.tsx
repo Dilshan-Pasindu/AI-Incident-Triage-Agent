@@ -76,7 +76,13 @@ export default function App() {
 
   const handleCancel = async () => {
     if (!activeRunId) return
-    try { await cancelRun(activeRunId) } catch { /* ignore */ }
+    try {
+      await cancelRun(activeRunId)
+    } catch {
+      /* ignore */
+    } finally {
+      listRuns().then(setRuns).catch(() => {})
+    }
   }
 
   const activeRun = runs.find((r) => r.run_id === activeRunId)

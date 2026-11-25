@@ -9,6 +9,7 @@ Only supplies human decisions to the core ApprovalService; never executes tools 
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from typing import Dict
 
 from incident_agent.approvers import ApprovalRecord, ApprovalService, ApprovalSource
@@ -33,7 +34,10 @@ class WebApprover:
     async def request_decision(self, record: ApprovalRecord) -> str:
         record.approval_source = ApprovalSource.WEB
         fut = self.register_waiter(record.approval_id)
+        remaining = max(0.1, (record.expires_at - datetime.now(timezone.utc)).total_seconds())
         try:
-            return await fut
+            return await asyncio.wait_for(fut, timeout=remaining)
+        except asyncio.TimeoutError:
+            return "reject"
         finally:
             self._waiters.pop(record.approval_id, None)

@@ -38,7 +38,7 @@ export function ApprovalCard({
     }
   }
 
-  const effectiveDecision = localResolved ?? resolvedDecision ?? (runEnded ? 'closed' : null)
+  const effectiveDecision = resolvedDecision ?? localResolved ?? (runEnded ? 'closed' : null)
 
   // Resolved / historical read-only audit card
   if (effectiveDecision) {

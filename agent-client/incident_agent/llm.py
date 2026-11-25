@@ -99,6 +99,7 @@ class _OpenAICompatibleLlmClient:
             base_url=base_url,
             api_key=api_key,
             default_headers=default_headers or None,
+            timeout=60.0,
         )
 
     @retry(

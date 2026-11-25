@@ -227,7 +227,12 @@ async def execute_tool(
 
         if approval_record.status != ApprovalStatus.APPROVED:
             dur = (time.perf_counter() - start_time) * 1000
-            rejection_text = "Action rejected by user. Do not retry this action."
+            if approval_record.status == ApprovalStatus.EXPIRED:
+                rejection_text = "Approval expired (timeout exceeded). Do not retry this action."
+            elif approval_record.status == ApprovalStatus.CANCELLED:
+                rejection_text = "Run cancelled before approval completed."
+            else:
+                rejection_text = "Action rejected by user. Do not retry this action."
             await trace_logger.log_event(
                 run_id=run_id,
                 event_id=next_event_id(),

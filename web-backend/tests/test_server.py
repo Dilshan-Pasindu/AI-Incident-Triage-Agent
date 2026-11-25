@@ -143,13 +143,20 @@ async def test_approval_resolution_via_api():
 
 @pytest.mark.asyncio
 async def test_cancel_run_via_api():
-    """Verify ongoing run can be cancelled via /api/runs/{run_id}/cancel."""
+    """Verify ongoing run can be cancelled via /api/runs/{run_id}/cancel and emits run_stopped."""
     async with get_test_client() as client:
         create_resp = await client.post(
             "/api/runs",
-            json={"query": "Why is payments-api failing? Find root cause and recommend actions", "model": "mock"},
+            json={"query": "Create a critical incident ticket for payments-api outage", "model": "mock"},
         )
         run_id = create_resp.json()["run_id"]
+
+        # Wait until awaiting_approval so the run is guaranteed to be mid-flight
+        for _ in range(20):
+            await asyncio.sleep(0.05)
+            d = (await client.get(f"/api/runs/{run_id}")).json()
+            if d["state"] == "awaiting_approval":
+                break
 
         cancel_resp = await client.post(
             f"/api/runs/{run_id}/cancel",
@@ -159,4 +166,54 @@ async def test_cancel_run_via_api():
         assert cancel_resp.json()["status"] == "cancelled"
 
         detail_resp = await client.get(f"/api/runs/{run_id}")
-        assert detail_resp.json()["state"] == "cancelled"
+        detail = detail_resp.json()
+        assert detail["state"] == "cancelled"
+        assert any(
+            ev.get("event_type") == "run_stopped" and ev.get("reason") == "cancelled"
+            for ev in detail["events"]
+        )
+
+
+@pytest.mark.asyncio
+async def test_expired_approval_returns_410_and_unblocks_run():
+    """Verify resolving an expired approval returns 410 and unblocks the run cleanly."""
+    from datetime import datetime, timedelta, timezone
+    import app.server as srv
+
+    async with get_test_client() as client:
+        create_resp = await client.post(
+            "/api/runs",
+            json={"query": "Create a critical incident ticket for payments-api outage", "model": "mock"},
+        )
+        run_id = create_resp.json()["run_id"]
+
+        approval_id = None
+        for _ in range(20):
+            await asyncio.sleep(0.05)
+            events = (await client.get(f"/api/runs/{run_id}")).json().get("events", [])
+            for ev in events:
+                if ev.get("event_type") == "approval_required":
+                    approval_id = ev.get("approval_id")
+                    break
+            if approval_id:
+                break
+
+        assert approval_id is not None
+        assert srv.approval_service is not None
+        rec = srv.approval_service.get_record(approval_id)
+        assert rec is not None
+        rec.expires_at = datetime.now(timezone.utc) - timedelta(seconds=5)
+
+        resp = await client.post(
+            f"/api/runs/{run_id}/approvals/{approval_id}",
+            json={"decision": "approve"},
+        )
+        assert resp.status_code == 410
+
+        await asyncio.sleep(0.2)
+        detail = (await client.get(f"/api/runs/{run_id}")).json()
+        assert detail["state"] == "completed"
+        assert any(
+            ev.get("event_type") == "approval_resolved" and ev.get("decision") == "expired"
+            for ev in detail["events"]
+        )
