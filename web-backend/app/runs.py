@@ -198,16 +198,29 @@ class RunManager:
                     workspace_root=self.workspace_dir,
                 )
             except asyncio.CancelledError:
+                await self.approval_service.cancel_run_approvals(run_id)
+                if not any(isinstance(ev, RunStoppedEvent) for ev in ctx.events):
+                    next_id = max((ev.event_id for ev in ctx.events), default=0) + 1
+                    ctx.add_event(
+                        RunStoppedEvent(
+                            run_id=run_id,
+                            event_id=next_id,
+                            reason="cancelled",
+                            iterations=1,
+                            error=ctx.cancel_token.reason or "User cancelled",
+                        )
+                    )
                 ctx.state = RunState.CANCELLED
-                ctx.ended_at = datetime.now(timezone.utc).isoformat()
+                ctx.ended_at = ctx.ended_at or datetime.now(timezone.utc).isoformat()
             except Exception as e:
                 ctx.state = RunState.FAILED
                 ctx.error = str(e)
                 ctx.ended_at = datetime.now(timezone.utc).isoformat()
+                next_id = max((ev.event_id for ev in ctx.events), default=0) + 1
                 ctx.add_event(
                     RunStoppedEvent(
                         run_id=run_id,
-                        event_id=len(ctx.events) + 1,
+                        event_id=next_id,
                         reason="error",
                         iterations=1,
                         error=str(e),
@@ -237,27 +250,52 @@ class RunManager:
         for app_id in list(ctx.approver._waiters.keys()):
             ctx.approver.resolve_waiter(app_id, "reject")
 
+        await self.approval_service.cancel_run_approvals(run_id)
+
         if ctx.task and not ctx.task.done():
             # Allow cooperative cancellation
             await asyncio.sleep(0.05)
             if not ctx.task.done():
                 ctx.task.cancel()
+                try:
+                    await asyncio.wait_for(ctx.task, timeout=0.5)
+                except (asyncio.CancelledError, asyncio.TimeoutError, Exception):
+                    pass
+
+        if not any(isinstance(ev, RunStoppedEvent) for ev in ctx.events):
+            next_id = max((ev.event_id for ev in ctx.events), default=0) + 1
+            ctx.add_event(
+                RunStoppedEvent(
+                    run_id=run_id,
+                    event_id=next_id,
+                    reason="cancelled",
+                    iterations=1,
+                    error=reason,
+                )
+            )
 
         ctx.state = RunState.CANCELLED
-        ctx.ended_at = datetime.now(timezone.utc).isoformat()
+        ctx.ended_at = ctx.ended_at or datetime.now(timezone.utc).isoformat()
         ctx.close_subscribers()
         return True
 
-    def resolve_approval(self, run_id: str, approval_id: str, decision: str) -> bool:
-        """Resolve a pending Web approval."""
+    def resolve_approval(self, run_id: str, approval_id: str, decision: str) -> str:
+        """
+        Resolve a pending Web approval.
+        Returns 'resolved', 'expired', or 'not_found'.
+        """
         ctx = self.runs.get(run_id)
         if not ctx:
-            return False
+            return "not_found"
 
         if approval_id in ctx.approver._waiters:
+            record = self.approval_service.get_record(approval_id)
+            if record and record.is_expired():
+                ctx.approver.resolve_waiter(approval_id, "reject")
+                return "expired"
             ctx.approver.resolve_waiter(approval_id, decision)
-            return True
-        return False
+            return "resolved"
+        return "not_found"
 
     async def subscribe_events(
         self,

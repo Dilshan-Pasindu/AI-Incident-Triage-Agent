@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ShieldCheck, ShieldX, Lock, Hash } from 'lucide-react'
+import { ShieldCheck, ShieldX, Lock, Hash, ChevronDown, ChevronUp, Clock } from 'lucide-react'
 import type { ApprovalRequiredEvent } from '../types'
 import { resolveApproval } from '../api'
 import { formatTimestamp } from '../utils'
@@ -7,19 +7,29 @@ import { formatTimestamp } from '../utils'
 interface ApprovalCardProps {
   event: ApprovalRequiredEvent
   onResolved: (decision: 'approve' | 'reject') => void
+  resolvedDecision?: string
+  resolvedSource?: string
+  runEnded?: boolean
 }
 
-export function ApprovalCard({ event, onResolved }: ApprovalCardProps) {
+export function ApprovalCard({
+  event,
+  onResolved,
+  resolvedDecision,
+  resolvedSource,
+  runEnded,
+}: ApprovalCardProps) {
   const [loading, setLoading] = useState<'approve' | 'reject' | null>(null)
-  const [resolved, setResolved] = useState<'approved' | 'rejected' | null>(null)
-  const [error, setError]       = useState<string | null>(null)
+  const [localResolved, setLocalResolved] = useState<'approved' | 'rejected' | null>(null)
+  const [showDetails, setShowDetails] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handle = async (decision: 'approve' | 'reject') => {
     setLoading(decision)
     setError(null)
     try {
       await resolveApproval(event.run_id, event.approval_id, decision)
-      setResolved(decision === 'approve' ? 'approved' : 'rejected')
+      setLocalResolved(decision === 'approve' ? 'approved' : 'rejected')
       onResolved(decision)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to resolve approval')
@@ -28,35 +38,80 @@ export function ApprovalCard({ event, onResolved }: ApprovalCardProps) {
     }
   }
 
-  // Resolved compact receipt
-  if (resolved) {
+  const effectiveDecision = resolvedDecision ?? localResolved ?? (runEnded ? 'closed' : null)
+
+  // Resolved / historical read-only audit card
+  if (effectiveDecision) {
+    const isApproved = effectiveDecision === 'approved'
+    const isRejected = effectiveDecision === 'rejected'
+    const style = isApproved
+      ? 'bg-emerald-500/8 border-emerald-500/20 text-emerald-400'
+      : isRejected
+        ? 'bg-red-500/8 border-red-500/20 text-red-400'
+        : 'bg-[var(--surface-2)] border-[var(--border)] text-[var(--text-muted)]'
+
+    const label = isApproved
+      ? 'Approved'
+      : isRejected
+        ? 'Rejected'
+        : effectiveDecision === 'expired'
+          ? 'Expired'
+          : 'Closed'
+
     return (
-      <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold fade-slide-in ${
-        resolved === 'approved'
-          ? 'bg-emerald-500/8 border-emerald-500/20 text-emerald-400'
-          : 'bg-red-500/8     border-red-500/20     text-red-400'
-      }`}>
-        {resolved === 'approved' ? (
-          <><ShieldCheck className="h-4 w-4" /> Approved — Executing</>
-        ) : (
-          <><ShieldX className="h-4 w-4" /> Rejected — No Action Taken</>
+      <div className={`rounded-xl border px-4 py-3 text-xs fade-slide-in min-w-0 ${style}`}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          {isApproved ? (
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+          ) : isRejected ? (
+            <ShieldX className="h-4 w-4 shrink-0" />
+          ) : (
+            <Clock className="h-4 w-4 shrink-0" />
+          )}
+          <span className="font-semibold shrink-0">{label}</span>
+          {resolvedSource && (
+            <span className="text-[11px] opacity-80 shrink-0">via {resolvedSource}</span>
+          )}
+          <code className="font-mono text-cyan-300/90 truncate min-w-0 ml-1">{event.tool}</code>
+          <button
+            type="button"
+            onClick={() => setShowDetails((p) => !p)}
+            aria-expanded={showDetails}
+            className="ml-auto flex items-center gap-1 text-[11px] text-[var(--text-faint)] hover:text-[var(--text-muted)] shrink-0"
+          >
+            {showDetails ? 'Hide details' : 'Details'}
+            {showDetails ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+
+        {showDetails && (
+          <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-2 text-[var(--text-muted)]">
+            <pre className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 overflow-auto max-h-44 font-mono leading-relaxed whitespace-pre-wrap break-words">
+              {JSON.stringify(event.arguments, null, 2)}
+            </pre>
+            <div className="flex items-center gap-2 text-[11px] text-[var(--text-faint)] min-w-0">
+              <Hash className="h-3 w-3 shrink-0" />
+              <span className="shrink-0">SHA-256</span>
+              <code className="font-mono truncate min-w-0">{event.payload_hash}</code>
+            </div>
+          </div>
         )}
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-violet-500/40 bg-violet-500/5 p-5 glow-violet fade-slide-in">
+    <div className="rounded-xl border border-violet-500/40 bg-violet-500/5 p-5 glow-violet fade-slide-in min-w-0">
       {/* Header */}
-      <div className="flex items-center gap-2.5 mb-4">
-        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-violet-500/15 border border-violet-500/25">
+      <div className="flex items-center gap-2.5 mb-4 min-w-0">
+        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-violet-500/15 border border-violet-500/25 shrink-0">
           <Lock className="h-4 w-4 text-violet-400" />
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-violet-300">Human Approval Required</p>
           <p className="text-xs text-[var(--text-faint)] font-mono tabular-nums mt-0.5">{formatTimestamp(event.timestamp)}</p>
         </div>
-        <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-violet-400">
+        <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-violet-400 shrink-0">
           <span className="h-2 w-2 rounded-full bg-violet-400 pulse-live" />
           Pending
         </span>
@@ -65,13 +120,13 @@ export function ApprovalCard({ event, onResolved }: ApprovalCardProps) {
       {/* Tool Info */}
       <div className="mb-4 space-y-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] p-3">
         {[
-          { label: 'Tool',    value: <code className="font-mono text-cyan-300">{event.tool}</code> },
+          { label: 'Tool',    value: <code className="font-mono text-cyan-300 break-all">{event.tool}</code> },
           { label: 'Server',  value: <code className="font-mono text-[var(--text-muted)]">{event.server}</code> },
           { label: 'Expires', value: <span className="text-[var(--text-muted)] font-mono tabular-nums">{formatTimestamp(event.expires_at)}</span> },
         ].map(({ label, value }) => (
-          <div key={label} className="flex items-center gap-3 text-xs">
-            <span className="text-[var(--text-faint)] w-16 shrink-0 font-medium">{label}</span>
-            {value}
+          <div key={label} className="flex items-start gap-3 text-xs">
+            <span className="text-[var(--text-faint)] w-16 shrink-0 font-medium pt-0.5">{label}</span>
+            <div className="min-w-0 flex-1">{value}</div>
           </div>
         ))}
       </div>
@@ -79,16 +134,16 @@ export function ApprovalCard({ event, onResolved }: ApprovalCardProps) {
       {/* Payload */}
       <div className="mb-4">
         <p className="text-micro mb-2">Proposed Payload</p>
-        <pre className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-[var(--text-muted)] overflow-auto max-h-40 font-mono leading-relaxed">
+        <pre className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-[var(--text-muted)] overflow-auto max-h-44 font-mono leading-relaxed whitespace-pre-wrap break-words">
           {JSON.stringify(event.arguments, null, 2)}
         </pre>
       </div>
 
       {/* Hash */}
-      <div className="flex items-center gap-2 mb-5 p-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)]">
+      <div className="flex items-center gap-2 mb-5 p-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] min-w-0">
         <Hash className="h-3 w-3 text-[var(--text-faint)] shrink-0" />
-        <span className="text-xs text-[var(--text-faint)] font-medium">SHA-256</span>
-        <code className="text-xs text-[var(--text-muted)] font-mono truncate">{event.payload_hash}</code>
+        <span className="text-xs text-[var(--text-faint)] font-medium shrink-0">SHA-256</span>
+        <code className="text-xs text-[var(--text-muted)] font-mono truncate min-w-0">{event.payload_hash}</code>
       </div>
 
       {error && (
@@ -100,7 +155,6 @@ export function ApprovalCard({ event, onResolved }: ApprovalCardProps) {
         <button
           onClick={() => handle('reject')}
           disabled={loading !== null}
-          autoFocus
           className="btn-danger flex-1 flex items-center justify-center gap-2 py-2.5 text-sm"
         >
           <ShieldX className="h-4 w-4" />

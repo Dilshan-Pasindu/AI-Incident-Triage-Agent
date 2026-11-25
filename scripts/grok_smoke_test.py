@@ -3,9 +3,9 @@
 scripts/grok_smoke_test.py (Universal LLM API Smoke Test)
 
 Verifies integration with live OpenAI-compatible LLM providers:
-- OpenRouter (OPENROUTER_API_KEY / x-ai/grok-3-beta)
+- OpenRouter (OPENROUTER_API_KEY / x-ai/grok-4.3)
 - xAI Grok (XAI_API_KEY / grok-2-latest)
-- Google Gemini (GEMINI_API_KEY / gemini-2.0-flash)
+- Google Gemini (GEMINI_API_KEY / gemini-3-flash-preview)
 - OpenAI (OPENAI_API_KEY / gpt-4o-mini)
 
 Checks:
@@ -32,7 +32,7 @@ load_dotenv()
 def sanitize_message(msg: str) -> str:
     """Sanitize error and output text so API keys are never exposed."""
     s = re.sub(r"(?:xai|sk)-[a-zA-Z0-9_-]{10,}", "[REDACTED_API_KEY]", msg)
-    s = re.sub(r"AIza[0-9A-Za-z-_]{35}", "[REDACTED_API_KEY]", s)
+    s = re.sub(r"(?:AIza[0-9A-Za-z-_]{35}|AQ\.[0-9A-Za-z-_]{20,})", "[REDACTED_API_KEY]", s)
     s = re.sub(r"Bearer\s+[a-zA-Z0-9_\-\.]+", "Bearer [REDACTED_TOKEN]", s, flags=re.IGNORECASE)
     s = re.sub(r"headers=\{[^\}]+\}", "headers=[REDACTED]", s)
     return s
@@ -67,7 +67,7 @@ def test_grok_smoke():
         provider_name = "OpenRouter (Grok)"
         api_key = openrouter_key
         base_url = "https://openrouter.ai/api/v1"
-        default_model = os.environ.get("OPENROUTER_MODEL") or os.environ.get("GROK_MODEL") or "x-ai/grok-3-beta"
+        default_model = os.environ.get("OPENROUTER_MODEL") or os.environ.get("GROK_MODEL") or "x-ai/grok-4.3"
         extra_headers = {
             "HTTP-Referer": os.environ.get(
                 "OPENROUTER_SITE_URL", "https://github.com/Dilshan-Pasindu/AI-Incident-Triage-Agent"
@@ -87,7 +87,7 @@ def test_grok_smoke():
         provider_name = "Google Gemini"
         api_key = gemini_key
         base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-        default_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+        default_model = os.environ.get("GEMINI_MODEL", "gemini-3-flash-preview")
     elif explicit_provider == "openai" or (
         explicit_provider == "" and openai_key and not openai_key.startswith("sk-your-")
     ):
@@ -164,6 +164,8 @@ def test_grok_smoke():
         },
     ]
 
+    max_tokens = int(os.environ.get("LLM_MAX_TOKENS", "4096"))
+
     # 1. Test Single Tool Calling
     print("\n--- Test 1: Single Tool Call Generation ---")
     start = time.perf_counter()
@@ -176,6 +178,7 @@ def test_grok_smoke():
             ],
             tools=cast(Any, test_tools),
             tool_choice="auto",
+            max_tokens=max_tokens,
         )
         latency = (time.perf_counter() - start) * 1000
         choice = response.choices[0]
@@ -209,6 +212,7 @@ def test_grok_smoke():
             ],
             tools=cast(Any, test_tools),
             tool_choice="auto",
+            max_tokens=max_tokens,
         )
         choice = response.choices[0]
         if choice.message.tool_calls:

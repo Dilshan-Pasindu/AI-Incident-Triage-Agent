@@ -126,21 +126,21 @@ def test_openrouter_and_provider_routing(monkeypatch):
     for key in ("LLM_PROVIDER", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "XAI_API_KEY", "GROK_MODEL", "GEMINI_API_KEY"):
         monkeypatch.delenv(key, raising=False)
 
-    # 1. Explicit OpenRouter key defaults to x-ai/grok-3-beta on openrouter.ai
+    # 1. Explicit OpenRouter key defaults to x-ai/grok-4.3 on openrouter.ai
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-test-openrouter-key-123456")
     client = get_llm_client()
     assert isinstance(client, OpenRouterLlmClient)
     assert client.base_url == "https://openrouter.ai/api/v1"
-    assert client.model == "x-ai/grok-3-beta"
+    assert client.model == "x-ai/grok-4.3"
 
     # 2. Auto-prefix grok models for OpenRouter when slash is omitted
-    or_prefixed = OpenRouterLlmClient(api_key="sk-or-v1-test-123456", model="grok-3-mini")
-    assert or_prefixed.model == "x-ai/grok-3-mini"
+    or_prefixed = OpenRouterLlmClient(api_key="sk-or-v1-test-123456", model="grok-4.3")
+    assert or_prefixed.model == "x-ai/grok-4.3"
 
     # 3. GrokLlmClient auto-routes sk-or- keys to OpenRouter endpoint
-    grok_via_or = GrokLlmClient(api_key="sk-or-v1-supervisor-key-123456", model="grok-3")
+    grok_via_or = GrokLlmClient(api_key="sk-or-v1-supervisor-key-123456", model="grok-4.3")
     assert grok_via_or.base_url == "https://openrouter.ai/api/v1"
-    assert grok_via_or.model == "x-ai/grok-3"
+    assert grok_via_or.model == "x-ai/grok-4.3"
 
     # 4. Direct xai- key uses api.x.ai
     grok_direct = GrokLlmClient(api_key="xai-direct-key-123456", model="grok-2-latest")

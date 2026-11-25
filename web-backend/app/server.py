@@ -252,8 +252,10 @@ async def resolve_approval(run_id: str, approval_id: str, req: ApprovalDecisionR
         raise HTTPException(status_code=400, detail="Decision must be 'approve' or 'reject'")
 
     canonical_decision = "approved" if decision in ("approve", "approved") else "rejected"
-    success = run_manager.resolve_approval(run_id, approval_id, canonical_decision)
-    if not success:
+    outcome = run_manager.resolve_approval(run_id, approval_id, canonical_decision)
+    if outcome == "expired":
+        raise HTTPException(status_code=410, detail="Approval request expired before decision")
+    if outcome != "resolved":
         raise HTTPException(status_code=404, detail="Pending approval not found or already resolved")
 
     return {"status": "resolved", "decision": canonical_decision}
