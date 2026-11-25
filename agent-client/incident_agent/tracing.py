@@ -21,7 +21,7 @@ from incident_agent.paths import TRACE_FILE as _DEFAULT_TRACE_FILE
 
 # Secret detection patterns
 RE_API_KEY = re.compile(r"(?:xai|sk)-[a-zA-Z0-9_\-]{16,}")
-RE_GEMINI_KEY = re.compile(r"AIza[0-9A-Za-z\-_]{35}")
+RE_GEMINI_KEY = re.compile(r"(?:AIza[0-9A-Za-z\-_]{35}|AQ\.[0-9A-Za-z\-_]{20,})")
 RE_BEARER = re.compile(r"Bearer\s+[a-zA-Z0-9_\-\.]+", re.IGNORECASE)
 RE_KEY_VALUE_SECRET = re.compile(
     r'(?i)(?:api_key|token|secret|password|auth_token)\s*[:=]\s*["\']?([^"\'\s,;]+)["\']?'

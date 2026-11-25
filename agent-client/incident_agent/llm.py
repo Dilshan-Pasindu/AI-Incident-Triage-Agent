@@ -64,8 +64,8 @@ def sanitize_error_message(exc: Exception) -> str:
             msg = f"{msg} - {body['message']}"
     # Redact xai- or sk- keys
     msg = re.sub(r"(?:xai|sk)-[a-zA-Z0-9_-]{10,}", "[REDACTED_API_KEY]", msg)
-    # Redact Google Gemini AIza keys
-    msg = re.sub(r"AIza[0-9A-Za-z-_]{35}", "[REDACTED_API_KEY]", msg)
+    # Redact Google Gemini keys (AIza... and AQ....)
+    msg = re.sub(r"(?:AIza[0-9A-Za-z-_]{35}|AQ\.[0-9A-Za-z-_]{20,})", "[REDACTED_API_KEY]", msg)
     # Redact Bearer tokens
     msg = re.sub(r"Bearer\s+[a-zA-Z0-9_\-\.]+", "Bearer [REDACTED_TOKEN]", msg, flags=re.IGNORECASE)
     # Strip headers if present in error representation
