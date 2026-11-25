@@ -3,8 +3,9 @@
 scripts/grok_smoke_test.py (Universal LLM API Smoke Test)
 
 Verifies integration with live OpenAI-compatible LLM providers:
-- Google Gemini (GEMINI_API_KEY / gemini-2.0-flash)
+- OpenRouter (OPENROUTER_API_KEY / x-ai/grok-3-beta)
 - xAI Grok (XAI_API_KEY / grok-2-latest)
+- Google Gemini (GEMINI_API_KEY / gemini-2.0-flash)
 - OpenAI (OPENAI_API_KEY / gpt-4o-mini)
 
 Checks:
@@ -42,39 +43,67 @@ def test_grok_smoke():
     # Detect provider
     explicit_provider = os.environ.get("LLM_PROVIDER", "").lower()
 
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
     xai_key = os.environ.get("XAI_API_KEY", "")
     openai_key = os.environ.get("OPENAI_API_KEY", "")
+
+    # Auto-detect OpenRouter key even if placed in XAI_API_KEY
+    if not openrouter_key and xai_key.startswith("sk-or-"):
+        openrouter_key = xai_key
 
     # Provider configuration
     provider_name: str
     api_key: str
     base_url: str
     default_model: str
+    extra_headers: dict[str, str] | None = None
 
-    if explicit_provider == "gemini" or (gemini_key and not gemini_key.startswith("AIzaSy-placeholder")):
-        provider_name = "Google Gemini"
-        api_key = gemini_key
-        base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-        default_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
-    elif explicit_provider == "openai" or (openai_key and not openai_key.startswith("sk-your-api-key")):
-        provider_name = "OpenAI"
-        api_key = openai_key
-        base_url = "https://api.openai.com/v1"
-        default_model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-    elif xai_key and not xai_key.startswith("xai-your-api-key"):
+    if explicit_provider == "openrouter" or (
+        explicit_provider in ("", "grok")
+        and openrouter_key
+        and not openrouter_key.startswith("sk-or-v1-your-")
+    ):
+        provider_name = "OpenRouter (Grok)"
+        api_key = openrouter_key
+        base_url = "https://openrouter.ai/api/v1"
+        default_model = os.environ.get("OPENROUTER_MODEL") or os.environ.get("GROK_MODEL") or "x-ai/grok-3-beta"
+        extra_headers = {
+            "HTTP-Referer": os.environ.get(
+                "OPENROUTER_SITE_URL", "https://github.com/Dilshan-Pasindu/AI-Incident-Triage-Agent"
+            ),
+            "X-Title": os.environ.get("OPENROUTER_APP_NAME", "AI Incident Triage Agent"),
+        }
+    elif explicit_provider in ("xai", "grok") or (
+        explicit_provider == "" and xai_key and not xai_key.startswith("xai-your-api-key")
+    ):
         provider_name = "xAI Grok"
         api_key = xai_key
         base_url = "https://api.x.ai/v1"
         default_model = os.environ.get("GROK_MODEL", "grok-2-latest")
+    elif explicit_provider == "gemini" or (
+        explicit_provider == "" and gemini_key and not gemini_key.startswith("AIzaSy-placeholder")
+    ):
+        provider_name = "Google Gemini"
+        api_key = gemini_key
+        base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+        default_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+    elif explicit_provider == "openai" or (
+        explicit_provider == "" and openai_key and not openai_key.startswith("sk-your-")
+    ):
+        provider_name = "OpenAI"
+        api_key = openai_key
+        base_url = "https://api.openai.com/v1"
+        default_model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
     else:
         print("==================================================")
         print("LLM API SMOKE TEST (Universal Provider Check)")
         print("==================================================")
         print("\n[INFO] No live LLM API key detected.")
         print("To run against a live provider, set one of the following in .env:")
-        print("  Google Gemini : GEMINI_API_KEY=AIzaSy...")
+        print("  OpenRouter    : OPENROUTER_API_KEY=sk-or-v1-...")
         print("  xAI Grok      : XAI_API_KEY=xai-...")
+        print("  Google Gemini : GEMINI_API_KEY=AIzaSy...")
         print("  OpenAI        : OPENAI_API_KEY=sk-...\n")
         print("Mock test verification: SUCCESS (MockLlmClient will be used until an API key is added).")
         return
@@ -82,6 +111,8 @@ def test_grok_smoke():
     model = os.environ.get("LLM_MODEL", default_model)
     if provider_name == "Google Gemini" and not model.startswith("models/"):
         model = f"models/{model}"
+    elif provider_name == "OpenRouter (Grok)" and "/" not in model and model.lower().startswith("grok"):
+        model = f"x-ai/{model}"
 
     print("==================================================")
     print(f"LLM API SMOKE TEST ({provider_name} Integration)")
@@ -96,6 +127,7 @@ def test_grok_smoke():
     client = OpenAI(
         base_url=base_url,
         api_key=api_key,
+        default_headers=extra_headers,
     )
 
     test_tools = [

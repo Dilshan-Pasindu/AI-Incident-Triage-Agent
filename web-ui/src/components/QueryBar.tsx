@@ -18,6 +18,7 @@ interface QueryBarProps {
   isRunning: boolean
   selectedModel: string
   onModelChange: (model: string) => void
+  liveProviderLabel?: string
 }
 
 export function QueryBar({
@@ -27,6 +28,7 @@ export function QueryBar({
   isRunning,
   selectedModel,
   onModelChange,
+  liveProviderLabel,
 }: QueryBarProps) {
   const [query, setQuery] = useState('')
 
@@ -60,7 +62,7 @@ export function QueryBar({
             type="button"
             onClick={() => onModelChange('default')}
             disabled={disabled || isRunning}
-            title="Use configured Live LLM (Google Gemini via .env)"
+            title="Use configured Live LLM (OpenRouter / xAI Grok / Google Gemini via .env)"
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150',
               selectedModel === 'default'
@@ -75,7 +77,7 @@ export function QueryBar({
                 selectedModel === 'default' ? 'bg-cyan-400 pulse-live' : 'bg-slate-500'
               )}
             />
-            Live LLM (Gemini)
+            {liveProviderLabel ? `Live LLM (${liveProviderLabel})` : 'Live LLM'}
           </button>
 
           <button

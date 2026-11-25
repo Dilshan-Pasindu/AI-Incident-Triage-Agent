@@ -128,4 +128,8 @@ export interface HealthStatus {
   }
   tools_count: number
   tools: string[]
+  llm?: {
+    provider: string
+    model: string
+  }
 }

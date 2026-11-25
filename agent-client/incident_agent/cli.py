@@ -19,6 +19,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from incident_agent.agent import run_query
+from incident_agent.approvers import CliApprover
 from incident_agent.cancellation import CancellationToken
 from incident_agent.events import (
     BaseAgentEvent,
@@ -31,9 +32,9 @@ from incident_agent.events import (
     ToolStatus,
 )
 from incident_agent.mcp_client import MCPHub
+from incident_agent.paths import MOCK_DATA_DIR, RUST_BINARY, WORKSPACE_DIR
+from incident_agent.tracing import TraceLogger
 
-from incident_agent.paths import RUST_BINARY, MOCK_DATA_DIR, WORKSPACE_DIR
-from dotenv import load_dotenv
 load_dotenv()
 console = Console()
 
@@ -115,7 +116,7 @@ async def main():
     console.print(
         Panel.fit(
             "[bold white]Incident Triage & Release Readiness AI Agent[/bold white]\n"
-            "[dim]Powered by Rust MCP Server + Node Filesystem + Grok Tool Calling[/dim]",
+            "[dim]Powered by Rust MCP Server + Node Filesystem + OpenRouter / Grok / Gemini[/dim]",
             border_style="cyan",
         )
     )
@@ -128,6 +129,8 @@ async def main():
     )
 
     handler = RichCliHandler()
+    approver = CliApprover(auto_approve=args.auto_approve)
+    trace_logger = TraceLogger(trace_file_path=args.trace_file)
 
     try:
         if args.query:
@@ -138,6 +141,8 @@ async def main():
                 hub=hub,
                 query=user_input,
                 emit=handler.handle_event,
+                approver=approver,
+                trace_logger=trace_logger,
                 cancel_token=cancel_token,
                 max_iterations=args.max_iterations,
             )
@@ -156,6 +161,8 @@ async def main():
                         hub=hub,
                         query=user_input,
                         emit=handler.handle_event,
+                        approver=approver,
+                        trace_logger=trace_logger,
                         cancel_token=cancel_token,
                         max_iterations=args.max_iterations,
                     )

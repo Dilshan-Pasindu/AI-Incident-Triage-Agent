@@ -209,6 +209,7 @@ export default function App() {
                   isRunning={isRunning}
                   selectedModel={selectedModel}
                   onModelChange={setSelectedModel}
+                  liveProviderLabel={health?.llm?.provider && health.llm.provider !== 'Mock' ? health.llm.provider : undefined}
                 />
                 {errorMsg && (
                   <p className="mt-3 text-xs text-red-400 bg-red-500/8 border border-red-500/20 rounded-lg px-3 py-2">

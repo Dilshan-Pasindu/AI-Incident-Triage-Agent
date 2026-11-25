@@ -4,7 +4,7 @@
 
 # AI Incident Triage & Release Readiness Agent with MCP
 
-[![CI Tests](https://img.shields.io/badge/tests-29%20passed-brightgreen.svg)](agent-client/tests/)
+[![CI Tests](https://img.shields.io/badge/tests-30%20passed-brightgreen.svg)](agent-client/tests/)
 [![Rust MCP](https://img.shields.io/badge/rust-rmcp%203.11.0-blue.svg)](mcp-server/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](agent-client/)
 [![Model Context Protocol](https://img.shields.io/badge/protocol-MCP%202024--11--05-purple.svg)](https://modelcontextprotocol.io/)
@@ -39,7 +39,7 @@ flowchart TD
     end
 
     subgraph LLM ["Model Provider"]
-        XAI["xAI Grok / OpenAI API (grok-2-latest)"]
+        OR["OpenRouter / xAI Grok / Gemini API"]
         MOCK["MockLlmClient (Offline Benchmark Mode)"]
     end
 
@@ -71,8 +71,8 @@ flowchart TD
 ### 1. Custom Rust Telemetry MCP Server (`ops-telemetry-mcp`)
 - Implemented in Rust with `rmcp 3.11.0` and `tokio`.
 - **Tools**:
-  - `search_logs`: Filter service logs by `service_name`, `severity` (DEBUG, INFO, WARN, ERROR, FATAL), keyword, and limits.
-  - `get_deployment_history`: Query deployment commits, deployers, timestamps, and rollback flags over a configurable hour window.
+  - `search_logs`: Filter service logs by `service_name`, `severity` (`INFO`, `WARN`, `ERROR`, `FATAL`), and `limit` (1–50).
+  - `get_deployment_history`: Query deployment commits, messages, timestamps, statuses, and rollback flags over a configurable `window_hours` lookback.
   - `create_incident_ticket`: Mutation creating persistent incident tickets in `mock_data/tickets.json`.
 - **Resources & Templates**:
   - `config://release-checklist`: Static pre-release gate criteria.
@@ -86,7 +86,7 @@ flowchart TD
 ### 3. Python Agent Host & Orchestrator
 - **Dynamic Tool & Resource Discovery**: Namespaces tools with server prefixes (`ops__*`, `fs__*`), registers a unified `read_resource(uri)` tool with dynamic schema descriptions, and auto-generates OpenAI/Grok function schemas.
 - **AnyIO Stdio Task Isolation**: Eliminates task-mismatch lifecycle crashes by dedicating long-running owner tasks for stdio transport.
-- **Provider-Swappable LLM Adapter**: Supports production live xAI Grok (`grok-2-latest`) with `tenacity` exponential backoff retries, and offline deterministic execution via `MockLlmClient`.
+- **Provider-Swappable LLM Adapter**: Supports live OpenRouter Grok (`OPENROUTER_API_KEY`, e.g., `x-ai/grok-3-beta`), direct xAI Grok (`XAI_API_KEY`), and Google Gemini (`GEMINI_API_KEY`) with `tenacity` exponential backoff retries, plus offline deterministic execution via `MockLlmClient`.
 
 ### 4. Security Guardrails & Human-in-the-Loop (HITL)
 - **Code-Enforced Canonical Path Boundary**: Uses `os.path.commonpath` to confine all workspace access to `mock_data/workspace`. Blocks directory traversal (`../../etc/passwd`), hidden file probes (`.env`), and symlink escapes.
@@ -104,25 +104,32 @@ AI-Incident-Triage-Agent/
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs               # Server startup & stdio transport
-│       ├── server.rs             # Tools, resources, and locking implementation
+│       ├── models.rs             # Schemas, allowlists, & structured error types
+│       ├── server.rs             # Tools, resources, & MCP ServerHandler
+│       ├── state.rs              # Two-tier locking & atomic JSON persistence
 │       └── tests.rs              # 7 unit tests (including 20-task concurrency test)
-├── agent-client/                 # Python Host & Orchestrator
-│   ├── agent.py                  # Central execute_tool loop and query runner
-│   ├── approvers.py              # Central ApprovalService & approver strategies
-│   ├── cancellation.py           # Cooperative CancellationToken
-│   ├── cli.py                    # Interactive Rich terminal CLI
-│   ├── eval_suite.py             # 7-benchmark evaluation suite
-│   ├── events.py                 # Pydantic streaming event models
-│   ├── guardrails.py             # Path confinement, injection scanner, jsonschema
-│   ├── llm.py                    # Provider-swappable LLM adapter (Grok + Mock)
-│   ├── mcp_client.py             # Dedicated stdio MCPHub and connection manager
-│   ├── tracing.py                # Structured JSONL logger & recursive redaction
-│   ├── tests/                    # 21 unit and integration tests
-│   │   ├── test_agent.py
-│   │   ├── test_eval_suite.py
-│   │   ├── test_guardrails_and_approvals.py
-│   │   └── test_mcp_client.py
+├── agent-client/                 # Python Core Host & Orchestrator
+│   ├── incident_agent/
+│   │   ├── agent.py              # Central execute_tool loop and query runner
+│   │   ├── approvers.py          # Central ApprovalService & approver strategies
+│   │   ├── cancellation.py       # Cooperative CancellationToken
+│   │   ├── cli.py                # Interactive Rich terminal CLI
+│   │   ├── eval_suite.py         # 7-benchmark evaluation suite
+│   │   ├── events.py             # Pydantic streaming event models
+│   │   ├── guardrails.py         # Path confinement, injection scanner, jsonschema
+│   │   ├── llm.py                # Provider-swappable adapter (OpenRouter/Grok/Gemini/Mock)
+│   │   ├── mcp_client.py         # Dedicated stdio MCPHub and connection manager
+│   │   ├── paths.py              # Repository & artifact path resolution
+│   │   └── tracing.py            # Structured JSONL logger & recursive redaction
+│   ├── tests/                    # 24 unit, integration, & boundary tests
 │   └── node_modules/             # Local offline @modelcontextprotocol/server-filesystem
+├── web-backend/                  # FastAPI SSE Backend & Run Manager
+│   ├── app/
+│   │   ├── approver.py           # Async WebApprover bridge
+│   │   ├── runs.py               # RunManager & SSE event replay buffer
+│   │   └── server.py             # REST & SSE endpoints + static UI hosting
+│   └── tests/                    # 6 backend integration tests
+├── web-ui/                       # React + TypeScript + Vite Dashboard
 ├── mock_data/                    # Telemetry and workspace mock seed data
 │   ├── logs.json                 # 35 service logs (includes injection payload)
 │   ├── deployments.json          # 6 historical deployments
@@ -132,8 +139,8 @@ AI-Incident-Triage-Agent/
 │   ├── regenerate_timestamps.py  # UTC dynamic timestamp shifter
 │   └── workspace/                # Filesystem server root (RELEASE_NOTES.md, config)
 ├── traces/                       # Representative audit traces
-│   ├── trace_investigation.jsonl # Multi-step investigation trace
-│   └── trace_edge_case.jsonl     # Prompt injection & blocked traversal trace
+│   ├── trace_investigation.jsonl # Multi-step investigation + HITL approval trace
+│   └── trace_edge_case.jsonl     # Prompt injection, unknown service, & rejected ticket trace
 ├── eval_results.md               # Benchmark evaluation report
 ├── REPORT.md                     # Deep engineering architecture & security report
 └── .env.example                  # Environment configuration template
@@ -183,7 +190,7 @@ Copy the `.env.example` file:
 ```bash
 cp .env.example .env
 ```
-*(Note: An `XAI_API_KEY` is only required for live Grok execution. If omitted, the system defaults cleanly to `MockLlmClient` for local deterministic execution and benchmarks.)*
+*(Note: Set `OPENROUTER_API_KEY` for OpenRouter Grok, `XAI_API_KEY` for direct xAI Grok, or `GEMINI_API_KEY` for Google Gemini. If omitted, the system defaults cleanly to `MockLlmClient` for local deterministic execution and benchmarks.)*
 
 ---
 
@@ -224,7 +231,7 @@ python -m incident_agent.eval_suite --repeat 2
 This produces a formatted terminal table and regenerates [eval_results.md](file:///Users/dilshanpasindu/Documents/GitHub/AI-Incident-Triage-Agent/eval_results.md).
 
 ### 4. Running the Test Suite
-Run all 29 pytest unit, integration, and architectural boundary tests:
+Run all 30 pytest unit, integration, and architectural boundary tests:
 ```bash
 pytest -v
 ```
@@ -254,7 +261,7 @@ Triggered automatically on every `push` and `pull_request` to `main` and `dev`:
 - **Python Matrix Suite Job** (tested on Python 3.11 & 3.12):
   - Verifies architectural dependency inversion (`test_no_web_imports.py` ensures core agent has zero web imports).
   - Enforces static type safety across all files via `pyright`.
-  - Executes the full 29-test pytest suite across core and web packages.
+  - Executes the full 30-test pytest suite across core and web packages.
   - Executes a smoke pass of the 7-benchmark evaluation suite (`eval_suite.py`).
 
 ### 2. Continuous Delivery (`.github/workflows/cd.yml`)

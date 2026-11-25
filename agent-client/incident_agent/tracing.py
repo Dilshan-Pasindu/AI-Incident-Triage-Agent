@@ -21,6 +21,7 @@ from incident_agent.paths import TRACE_FILE as _DEFAULT_TRACE_FILE
 
 # Secret detection patterns
 RE_API_KEY = re.compile(r"(?:xai|sk)-[a-zA-Z0-9_\-]{16,}")
+RE_GEMINI_KEY = re.compile(r"AIza[0-9A-Za-z\-_]{35}")
 RE_BEARER = re.compile(r"Bearer\s+[a-zA-Z0-9_\-\.]+", re.IGNORECASE)
 RE_KEY_VALUE_SECRET = re.compile(
     r'(?i)(?:api_key|token|secret|password|auth_token)\s*[:=]\s*["\']?([^"\'\s,;]+)["\']?'
@@ -32,8 +33,10 @@ def redact_string(val: str) -> str:
     if not isinstance(val, str):
         return val
 
-    # Redact xai- and sk- keys
+    # Redact xai- and sk- keys (including OpenRouter sk-or-v1-* keys)
     val = RE_API_KEY.sub("[REDACTED_API_KEY]", val)
+    # Redact Google Gemini AIza keys
+    val = RE_GEMINI_KEY.sub("[REDACTED_API_KEY]", val)
     # Redact Bearer tokens
     val = RE_BEARER.sub("Bearer [REDACTED_TOKEN]", val)
     # Redact KEY=value secrets
