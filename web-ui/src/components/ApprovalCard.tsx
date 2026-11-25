@@ -46,17 +46,17 @@ export function ApprovalCard({ event, onResolved }: ApprovalCardProps) {
   }
 
   return (
-    <div className="rounded-xl border border-violet-500/40 bg-violet-500/5 p-5 glow-violet fade-slide-in">
+    <div className="rounded-xl border border-violet-500/40 bg-violet-500/5 p-5 glow-violet fade-slide-in min-w-0">
       {/* Header */}
-      <div className="flex items-center gap-2.5 mb-4">
-        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-violet-500/15 border border-violet-500/25">
+      <div className="flex items-center gap-2.5 mb-4 min-w-0">
+        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-violet-500/15 border border-violet-500/25 shrink-0">
           <Lock className="h-4 w-4 text-violet-400" />
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-violet-300">Human Approval Required</p>
           <p className="text-xs text-[var(--text-faint)] font-mono tabular-nums mt-0.5">{formatTimestamp(event.timestamp)}</p>
         </div>
-        <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-violet-400">
+        <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-violet-400 shrink-0">
           <span className="h-2 w-2 rounded-full bg-violet-400 pulse-live" />
           Pending
         </span>
@@ -65,13 +65,13 @@ export function ApprovalCard({ event, onResolved }: ApprovalCardProps) {
       {/* Tool Info */}
       <div className="mb-4 space-y-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] p-3">
         {[
-          { label: 'Tool',    value: <code className="font-mono text-cyan-300">{event.tool}</code> },
+          { label: 'Tool',    value: <code className="font-mono text-cyan-300 break-all">{event.tool}</code> },
           { label: 'Server',  value: <code className="font-mono text-[var(--text-muted)]">{event.server}</code> },
           { label: 'Expires', value: <span className="text-[var(--text-muted)] font-mono tabular-nums">{formatTimestamp(event.expires_at)}</span> },
         ].map(({ label, value }) => (
-          <div key={label} className="flex items-center gap-3 text-xs">
-            <span className="text-[var(--text-faint)] w-16 shrink-0 font-medium">{label}</span>
-            {value}
+          <div key={label} className="flex items-start gap-3 text-xs">
+            <span className="text-[var(--text-faint)] w-16 shrink-0 font-medium pt-0.5">{label}</span>
+            <div className="min-w-0 flex-1">{value}</div>
           </div>
         ))}
       </div>
@@ -79,16 +79,16 @@ export function ApprovalCard({ event, onResolved }: ApprovalCardProps) {
       {/* Payload */}
       <div className="mb-4">
         <p className="text-micro mb-2">Proposed Payload</p>
-        <pre className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-[var(--text-muted)] overflow-auto max-h-40 font-mono leading-relaxed">
+        <pre className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-[var(--text-muted)] overflow-auto max-h-44 font-mono leading-relaxed whitespace-pre-wrap break-words">
           {JSON.stringify(event.arguments, null, 2)}
         </pre>
       </div>
 
       {/* Hash */}
-      <div className="flex items-center gap-2 mb-5 p-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)]">
+      <div className="flex items-center gap-2 mb-5 p-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] min-w-0">
         <Hash className="h-3 w-3 text-[var(--text-faint)] shrink-0" />
-        <span className="text-xs text-[var(--text-faint)] font-medium">SHA-256</span>
-        <code className="text-xs text-[var(--text-muted)] font-mono truncate">{event.payload_hash}</code>
+        <span className="text-xs text-[var(--text-faint)] font-medium shrink-0">SHA-256</span>
+        <code className="text-xs text-[var(--text-muted)] font-mono truncate min-w-0">{event.payload_hash}</code>
       </div>
 
       {error && (

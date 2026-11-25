@@ -181,9 +181,12 @@ export default function App() {
 
         {/* ── Investigate ─────────────────────────────────────────── */}
         {activeTab === 'investigate' && (
-          <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5">
-            {/* Left rail */}
-            <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5 items-start">
+            {/* Left rail — sticky, scrolls independently */}
+            <aside
+              className="space-y-4 lg:sticky lg:self-start lg:overflow-y-auto"
+              style={{ top: '3.75rem', maxHeight: 'calc(100vh - 4.5rem)' }}
+            >
               <HealthPanel health={health} error={healthError} onRefresh={refreshHealth} />
               <RunHistory
                 runs={runs}
@@ -195,11 +198,14 @@ export default function App() {
               />
             </aside>
 
-            {/* Main area */}
-            <div className="flex flex-col gap-4">
+            {/* Main area — flex column, fills viewport height */}
+            <div
+              className="flex flex-col gap-3 min-w-0"
+              style={{ minHeight: 'calc(100vh - 5.5rem)' }}
+            >
               {/* Query section */}
               <div
-                className="rounded-xl border p-4"
+                className="rounded-xl border p-4 shrink-0"
                 style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
               >
                 <QueryBar
@@ -221,15 +227,15 @@ export default function App() {
               {/* Run status bar */}
               {activeRun && (
                 <div
-                  className="flex flex-col gap-1.5 px-4 py-2.5 rounded-xl border text-xs fade-slide-in"
+                  className="flex flex-col gap-1.5 px-4 py-2.5 rounded-xl border text-xs fade-slide-in shrink-0"
                   style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <RunStatusIcon state={activeRun.state} />
-                    <span className={cn('font-semibold capitalize', runStateColor(activeRun.state))}>
+                    <span className={cn('font-semibold capitalize shrink-0', runStateColor(activeRun.state))}>
                       {activeRun.state.replace('_', ' ')}
                     </span>
-                    <span className="text-[var(--text-faint)] truncate">{activeRun.query}</span>
+                    <span className="text-[var(--text-faint)] truncate min-w-0">{activeRun.query}</span>
                     <code className="ml-auto text-[var(--text-faint)] font-mono shrink-0 tabular-nums">
                       {activeRun.run_id.slice(-8)}
                     </code>
@@ -242,15 +248,15 @@ export default function App() {
                 </div>
               )}
 
-              {/* Event timeline */}
+              {/* Event timeline — takes all remaining height, scrolls internally */}
               <div
                 ref={timelineRef}
-                className="rounded-xl border p-4 overflow-y-auto"
+                className="rounded-xl border p-4 overflow-y-auto flex-1"
                 style={{
                   background: 'var(--surface)',
                   borderColor: 'var(--border)',
-                  minHeight: '420px',
-                  maxHeight: '660px',
+                  minHeight: '360px',
+                  maxHeight: 'calc(100vh - 16rem)',
                 }}
                 aria-live="polite"
               >
