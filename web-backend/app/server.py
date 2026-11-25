@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from incident_agent.approvers import ApprovalService
-from incident_agent.llm import GrokLlmClient, LlmClient, MockLlmClient
+from incident_agent.llm import GeminiLlmClient, GrokLlmClient, LlmClient, MockLlmClient, OpenRouterLlmClient
 from incident_agent.mcp_client import MCPHub
 from incident_agent.paths import MOCK_DATA_DIR, WORKSPACE_DIR, RUST_BINARY, TRACE_FILE, EVAL_FILE
 from incident_agent.tracing import TraceLogger
@@ -118,6 +118,12 @@ async def get_health():
     ops_conn = hub.connections.get("ops")
     fs_conn = hub.connections.get("fs")
 
+    default_llm = run_manager.default_llm if run_manager else None
+    llm_info = {
+        "provider": getattr(default_llm, "provider_name", "Mock" if isinstance(default_llm, MockLlmClient) else "Configured"),
+        "model": getattr(default_llm, "model", "mock-grok-2"),
+    }
+
     return {
         "status": "healthy",
         "mcp_servers": {
@@ -132,6 +138,7 @@ async def get_health():
         },
         "tools_count": len(hub.tool_registry),
         "tools": list(hub.tool_registry.keys()),
+        "llm": llm_info,
     }
 
 
@@ -147,12 +154,18 @@ async def create_run(req: CreateRunRequest):
 
     llm: Optional[LlmClient] = None
     if req.model:
-        if req.model.lower() == "mock":
+        model_lower = req.model.lower()
+        if model_lower == "mock":
             llm = MockLlmClient()
-        elif req.model.lower() != "default":
+        elif model_lower == "openrouter" or "/" in model_lower:
+            llm = OpenRouterLlmClient(model=None if model_lower == "openrouter" else req.model)
+        elif "gemini" in model_lower:
+            llm = GeminiLlmClient(model=req.model)
+        elif model_lower != "default":
             llm = GrokLlmClient(model=req.model)
 
-    ctx = await run_manager.start_run(query=query, llm=llm, model_name=req.model)
+    model_name_for_ctx = None if (not req.model or req.model.lower() == "default") else req.model
+    ctx = await run_manager.start_run(query=query, llm=llm, model_name=model_name_for_ctx)
     return ctx.to_dict()
 
 

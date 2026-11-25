@@ -1,52 +1,133 @@
 #!/usr/bin/env python3
 """
-scripts/grok_smoke_test.py
+scripts/grok_smoke_test.py (Universal LLM API Smoke Test)
 
-Grok API Smoke Test Script.
-Verifies integration with xAI Grok API:
-- Checks GROK_MODEL and XAI_API_KEY
-- Tests chat completions with function calling (tools and tool_choice)
-- Verifies function arguments returned as valid JSON strings
+Verifies integration with live OpenAI-compatible LLM providers:
+- OpenRouter (OPENROUTER_API_KEY / x-ai/grok-3-beta)
+- xAI Grok (XAI_API_KEY / grok-2-latest)
+- Google Gemini (GEMINI_API_KEY / gemini-2.0-flash)
+- OpenAI (OPENAI_API_KEY / gpt-4o-mini)
+
+Checks:
+- Chat completions with function calling (tools and tool_choice)
+- Verifies tool arguments returned as valid JSON strings
 - Tests multiple tool calls in a single assistant turn
-- Tests error handling and sanitized provider diagnostics
+- Error handling and sanitized provider diagnostics
 - Strictly guarantees NO API keys or request headers are logged.
 """
 
 from __future__ import annotations
 
-from typing import Any, cast
 import json
 import os
+import re
 import time
+from typing import Any, cast
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
+def sanitize_message(msg: str) -> str:
+    """Sanitize error and output text so API keys are never exposed."""
+    s = re.sub(r"(?:xai|sk)-[a-zA-Z0-9_-]{10,}", "[REDACTED_API_KEY]", msg)
+    s = re.sub(r"AIza[0-9A-Za-z-_]{35}", "[REDACTED_API_KEY]", s)
+    s = re.sub(r"Bearer\s+[a-zA-Z0-9_\-\.]+", "Bearer [REDACTED_TOKEN]", s, flags=re.IGNORECASE)
+    s = re.sub(r"headers=\{[^\}]+\}", "headers=[REDACTED]", s)
+    return s
+
+
 def test_grok_smoke():
-    api_key = os.environ.get("XAI_API_KEY")
-    model = os.environ.get("GROK_MODEL", "grok-2-latest")
+    """Universal smoke test entrypoint, backwards-compatible with grok_smoke_test."""
+    # Detect provider
+    explicit_provider = os.environ.get("LLM_PROVIDER", "").lower()
 
-    print("==================================================")
-    print("GROK API SMOKE TEST (xAI Integration)")
-    print("==================================================")
-    print(f"Target Model: {model}")
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    xai_key = os.environ.get("XAI_API_KEY", "")
+    openai_key = os.environ.get("OPENAI_API_KEY", "")
 
-    if not api_key or api_key.startswith("xai-your-api-key"):
-        print("\n[INFO] XAI_API_KEY is not set or using placeholder.")
-        print("Skipping live xAI network test. To run against the live API:")
-        print("  1. Add your real key to .env: XAI_API_KEY=xai-...")
-        print("  2. Re-run: python scripts/grok_smoke_test.py\n")
-        print("Mock test verification: SUCCESS (Mock client will be used until key is added).")
+    # Auto-detect OpenRouter key even if placed in XAI_API_KEY
+    if not openrouter_key and xai_key.startswith("sk-or-"):
+        openrouter_key = xai_key
+
+    # Provider configuration
+    provider_name: str
+    api_key: str
+    base_url: str
+    default_model: str
+    extra_headers: dict[str, str] | None = None
+
+    if explicit_provider == "openrouter" or (
+        explicit_provider in ("", "grok")
+        and openrouter_key
+        and not openrouter_key.startswith("sk-or-v1-your-")
+    ):
+        provider_name = "OpenRouter (Grok)"
+        api_key = openrouter_key
+        base_url = "https://openrouter.ai/api/v1"
+        default_model = os.environ.get("OPENROUTER_MODEL") or os.environ.get("GROK_MODEL") or "x-ai/grok-3-beta"
+        extra_headers = {
+            "HTTP-Referer": os.environ.get(
+                "OPENROUTER_SITE_URL", "https://github.com/Dilshan-Pasindu/AI-Incident-Triage-Agent"
+            ),
+            "X-Title": os.environ.get("OPENROUTER_APP_NAME", "AI Incident Triage Agent"),
+        }
+    elif explicit_provider in ("xai", "grok") or (
+        explicit_provider == "" and xai_key and not xai_key.startswith("xai-your-api-key")
+    ):
+        provider_name = "xAI Grok"
+        api_key = xai_key
+        base_url = "https://api.x.ai/v1"
+        default_model = os.environ.get("GROK_MODEL", "grok-2-latest")
+    elif explicit_provider == "gemini" or (
+        explicit_provider == "" and gemini_key and not gemini_key.startswith("AIzaSy-placeholder")
+    ):
+        provider_name = "Google Gemini"
+        api_key = gemini_key
+        base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+        default_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+    elif explicit_provider == "openai" or (
+        explicit_provider == "" and openai_key and not openai_key.startswith("sk-your-")
+    ):
+        provider_name = "OpenAI"
+        api_key = openai_key
+        base_url = "https://api.openai.com/v1"
+        default_model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+    else:
+        print("==================================================")
+        print("LLM API SMOKE TEST (Universal Provider Check)")
+        print("==================================================")
+        print("\n[INFO] No live LLM API key detected.")
+        print("To run against a live provider, set one of the following in .env:")
+        print("  OpenRouter    : OPENROUTER_API_KEY=sk-or-v1-...")
+        print("  xAI Grok      : XAI_API_KEY=xai-...")
+        print("  Google Gemini : GEMINI_API_KEY=AIzaSy...")
+        print("  OpenAI        : OPENAI_API_KEY=sk-...\n")
+        print("Mock test verification: SUCCESS (MockLlmClient will be used until an API key is added).")
         return
+
+    model = os.environ.get("LLM_MODEL", default_model)
+    if provider_name == "Google Gemini" and not model.startswith("models/"):
+        model = f"models/{model}"
+    elif provider_name == "OpenRouter (Grok)" and "/" not in model and model.lower().startswith("grok"):
+        model = f"x-ai/{model}"
+
+    print("==================================================")
+    print(f"LLM API SMOKE TEST ({provider_name} Integration)")
+    print("==================================================")
+    print(f"Target Provider : {provider_name}")
+    print(f"Target Model    : {model}")
+    print(f"Base URL        : {base_url}")
 
     from openai import OpenAI
 
-    print("Connecting to https://api.x.ai/v1 ...")
+    print(f"\nConnecting to {base_url} ...")
     client = OpenAI(
-        base_url="https://api.x.ai/v1",
+        base_url=base_url,
         api_key=api_key,
+        default_headers=extra_headers,
     )
 
     test_tools = [
@@ -113,7 +194,8 @@ def test_grok_smoke():
             print(f"Model text response: {choice.message.content}")
 
     except Exception as e:
-        print(f"[ERROR] Grok API call failed: {type(e).__name__}: {e}")
+        sanitized = sanitize_message(str(e))
+        print(f"[ERROR] API call failed: {type(e).__name__}: {sanitized}")
         return
 
     # 2. Test Multi-Tool Calling
@@ -138,10 +220,11 @@ def test_grok_smoke():
         else:
             print(f"Model chose text response: {choice.message.content}")
     except Exception as e:
-        print(f"[ERROR] Multi-tool test error: {e}")
+        sanitized = sanitize_message(str(e))
+        print(f"[ERROR] Multi-tool test error: {sanitized}")
 
     print("\n==================================================")
-    print("GROK API SMOKE TEST COMPLETED SUCCESSFULLY")
+    print(f"{provider_name.upper()} SMOKE TEST COMPLETED SUCCESSFULLY")
     print("==================================================")
 
 

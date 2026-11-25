@@ -45,7 +45,7 @@ from incident_agent.events import (
     ToolFinishedEvent,
     ToolStartedEvent,
 )
-from incident_agent.llm import GrokLlmClient, LlmClient, MockLlmClient
+from incident_agent.llm import GrokLlmClient, LlmClient, MockLlmClient, OpenRouterLlmClient, get_llm_client
 from incident_agent.mcp_client import MCPHub
 from incident_agent.tracing import TraceLogger
 
@@ -486,16 +486,21 @@ async def main_async():
     if args.model.lower() in ("mock", "mock-grok-2"):
         llm = MockLlmClient()
         model_display = "MockLlmClient (mock-grok-2)"
+    elif args.model.lower() == "live":
+        llm = get_llm_client()
+        model_display = f"{type(llm).__name__} ({getattr(llm, 'model', 'default')})"
+    elif args.model.lower() == "openrouter" or "/" in args.model:
+        llm = OpenRouterLlmClient(model=None if args.model.lower() == "openrouter" else args.model)
+        model_display = f"OpenRouterLlmClient ({llm.model})"
     else:
-        api_key = os.environ.get("XAI_API_KEY", "")
+        api_key = os.environ.get("XAI_API_KEY", "") or os.environ.get("OPENROUTER_API_KEY", "")
         if not api_key:
-            console.print("[yellow]Warning: XAI_API_KEY not found in environment. Falling back to MockLlmClient.[/yellow]")
+            console.print("[yellow]Warning: No Grok/OpenRouter API key found in environment. Falling back to MockLlmClient.[/yellow]")
             llm = MockLlmClient()
             model_display = "MockLlmClient (fallback)"
         else:
-            model_name = args.model if args.model != "live" else "grok-2-latest"
-            llm = GrokLlmClient(model=model_name)
-            model_display = f"GrokLlmClient ({model_name})"
+            llm = GrokLlmClient(model=args.model)
+            model_display = f"{getattr(llm, 'provider_name', 'Grok')} ({llm.model})"
 
     # 3. Setup TraceLogger
     trace_logger = TraceLogger(str(trace_path))

@@ -1,7 +1,7 @@
 """
 agent-client/llm.py
 
-Provider-swappable LLM adapter for xAI Grok (and local mock fallback).
+Provider-swappable LLM adapter for OpenRouter, xAI Grok, Google Gemini, and local mock fallback.
 Enforces tenacity retries on HTTP 429 and 5xx errors, logs latency,
 and strictly sanitizes request headers and API keys from error outputs.
 """
@@ -31,6 +31,7 @@ class ToolCallItem:
     id: str
     name: str
     arguments_json: str
+    extra_content: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -55,8 +56,16 @@ def is_retryable_error(exc: BaseException) -> bool:
 def sanitize_error_message(exc: Exception) -> str:
     """Sanitize provider errors so API keys and headers are never exposed."""
     msg = str(exc)
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        if "error" in body and isinstance(body["error"], dict) and "message" in body["error"]:
+            msg = f"{msg} - {body['error']['message']}"
+        elif "message" in body:
+            msg = f"{msg} - {body['message']}"
     # Redact xai- or sk- keys
     msg = re.sub(r"(?:xai|sk)-[a-zA-Z0-9_-]{10,}", "[REDACTED_API_KEY]", msg)
+    # Redact Google Gemini AIza keys
+    msg = re.sub(r"AIza[0-9A-Za-z-_]{35}", "[REDACTED_API_KEY]", msg)
     # Redact Bearer tokens
     msg = re.sub(r"Bearer\s+[a-zA-Z0-9_\-\.]+", "Bearer [REDACTED_TOKEN]", msg, flags=re.IGNORECASE)
     # Strip headers if present in error representation
@@ -69,20 +78,27 @@ class LlmClient(Protocol):
         ...
 
 
-class GrokLlmClient:
-    """Production LLM adapter for xAI Grok via OpenAI-compatible SDK."""
+class _OpenAICompatibleLlmClient:
+    """Shared base adapter for OpenAI-compatible chat completion endpoints."""
 
-    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+    provider_name: str = "LLM"
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        base_url: str,
+        default_headers: Optional[Dict[str, str]] = None,
+    ):
         from openai import AsyncOpenAI
 
-        self.api_key = api_key or os.environ.get("XAI_API_KEY", "")
-        if not self.api_key:
-            raise ValueError("XAI_API_KEY environment variable is required for GrokLlmClient.")
-
-        self.model = model or os.environ.get("GROK_MODEL", "grok-2-latest")
+        self.api_key = api_key
+        self.model = model
+        self.base_url = base_url
         self.client = AsyncOpenAI(
-            base_url="https://api.x.ai/v1",
-            api_key=self.api_key,
+            base_url=base_url,
+            api_key=api_key,
+            default_headers=default_headers or None,
         )
 
     @retry(
@@ -111,11 +127,13 @@ class GrokLlmClient:
             tool_calls: List[ToolCallItem] = []
             if msg.tool_calls:
                 for tc in msg.tool_calls:
+                    extra = getattr(tc, "extra_content", None) or (getattr(tc, "model_extra", {}) or {}).get("extra_content")
                     tool_calls.append(
                         ToolCallItem(
                             id=tc.id,
                             name=tc.function.name,
                             arguments_json=tc.function.arguments,
+                            extra_content=extra,
                         )
                     )
 
@@ -127,10 +145,103 @@ class GrokLlmClient:
 
         except Exception as e:
             sanitized = sanitize_error_message(e)
-            raise RuntimeError(f"Grok API error: {sanitized}") from None
+            raise RuntimeError(f"{self.provider_name} API error: {sanitized}") from None
 
     async def step(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]]) -> LlmTurn:
         return await self._step_with_retry(messages, tools)
+
+
+class OpenRouterLlmClient(_OpenAICompatibleLlmClient):
+    """Production LLM adapter for OpenRouter (supporting Grok x-ai/* and other models)."""
+
+    provider_name = "OpenRouter"
+
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+        resolved_key = api_key or os.environ.get("OPENROUTER_API_KEY", "") or os.environ.get("XAI_API_KEY", "")
+        if not resolved_key:
+            raise ValueError("OPENROUTER_API_KEY environment variable is required for OpenRouterLlmClient.")
+
+        raw_model = model or os.environ.get("OPENROUTER_MODEL") or os.environ.get("GROK_MODEL") or "x-ai/grok-3-beta"
+        if raw_model.lower() == "openrouter":
+            raw_model = os.environ.get("OPENROUTER_MODEL") or "x-ai/grok-3-beta"
+        elif "/" not in raw_model and raw_model.lower().startswith("grok"):
+            raw_model = f"x-ai/{raw_model}"
+
+        headers = {
+            "HTTP-Referer": os.environ.get(
+                "OPENROUTER_SITE_URL", "https://github.com/Dilshan-Pasindu/AI-Incident-Triage-Agent"
+            ),
+            "X-Title": os.environ.get("OPENROUTER_APP_NAME", "AI Incident Triage Agent"),
+        }
+        super().__init__(
+            api_key=resolved_key,
+            model=raw_model,
+            base_url="https://openrouter.ai/api/v1",
+            default_headers=headers,
+        )
+
+
+class GrokLlmClient(_OpenAICompatibleLlmClient):
+    """Production LLM adapter for xAI Grok (direct API or auto-routed via OpenRouter)."""
+
+    provider_name = "Grok"
+
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+        xai_key = os.environ.get("XAI_API_KEY", "")
+        or_key = os.environ.get("OPENROUTER_API_KEY", "")
+        resolved_key = api_key or xai_key or or_key
+        if not resolved_key:
+            raise ValueError("XAI_API_KEY or OPENROUTER_API_KEY environment variable is required for GrokLlmClient.")
+
+        use_openrouter = (
+            resolved_key.startswith("sk-or-")
+            or (bool(model) and "/" in str(model))
+            or (not api_key and not xai_key and bool(or_key))
+        )
+
+        if use_openrouter:
+            self.provider_name = "OpenRouter"
+            raw_model = model or os.environ.get("OPENROUTER_MODEL") or os.environ.get("GROK_MODEL") or "x-ai/grok-3-beta"
+            if "/" not in raw_model and raw_model.lower().startswith("grok"):
+                raw_model = f"x-ai/{raw_model}"
+            headers = {
+                "HTTP-Referer": os.environ.get(
+                    "OPENROUTER_SITE_URL", "https://github.com/Dilshan-Pasindu/AI-Incident-Triage-Agent"
+                ),
+                "X-Title": os.environ.get("OPENROUTER_APP_NAME", "AI Incident Triage Agent"),
+            }
+            super().__init__(
+                api_key=resolved_key,
+                model=raw_model,
+                base_url="https://openrouter.ai/api/v1",
+                default_headers=headers,
+            )
+        else:
+            raw_model = model or os.environ.get("GROK_MODEL", "grok-2-latest")
+            super().__init__(
+                api_key=resolved_key,
+                model=raw_model,
+                base_url="https://api.x.ai/v1",
+            )
+
+
+class GeminiLlmClient(_OpenAICompatibleLlmClient):
+    """Production LLM adapter for Google Gemini via its official OpenAI-compatible endpoint."""
+
+    provider_name = "Gemini"
+
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+        resolved_key = api_key or os.environ.get("GEMINI_API_KEY", "")
+        if not resolved_key:
+            raise ValueError("GEMINI_API_KEY environment variable is required for GeminiLlmClient.")
+
+        raw_model = model or os.environ.get("GEMINI_MODEL", "gemini-4-hydrogen")
+        resolved_model = raw_model if raw_model.startswith("models/") else f"models/{raw_model}"
+        super().__init__(
+            api_key=resolved_key,
+            model=resolved_model,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        )
 
 
 class MockLlmClient:
@@ -388,8 +499,28 @@ class MockLlmClient:
 
 
 def get_llm_client() -> LlmClient:
-    """Factory returning GrokLlmClient if valid XAI_API_KEY is present, else MockLlmClient."""
-    api_key = os.environ.get("XAI_API_KEY", "")
-    if api_key and not api_key.startswith("xai-your-api-key"):
+    """Factory returning OpenRouter, Grok, Gemini, or MockLlmClient based on env configuration."""
+    provider = os.environ.get("LLM_PROVIDER", "").strip().lower()
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+    xai_key = os.environ.get("XAI_API_KEY", "")
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+
+    if provider == "mock":
+        return MockLlmClient()
+    if provider == "openrouter":
+        return OpenRouterLlmClient()
+    if provider in ("xai", "grok"):
         return GrokLlmClient()
+    if provider == "gemini":
+        return GeminiLlmClient()
+
+    if openrouter_key and not openrouter_key.startswith("sk-or-v1-your-"):
+        return OpenRouterLlmClient()
+
+    if xai_key and not xai_key.startswith("xai-your-api-key"):
+        return GrokLlmClient()
+
+    if gemini_key and not gemini_key.startswith("AIzaSy-placeholder"):
+        return GeminiLlmClient()
+
     return MockLlmClient()

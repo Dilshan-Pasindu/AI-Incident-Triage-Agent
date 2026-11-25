@@ -45,7 +45,7 @@ from incident_agent.guardrails import (
     validate_tool_arguments,
     validate_tool_batch,
 )
-from incident_agent.llm import LlmClient, LlmTurn, get_llm_client
+from incident_agent.llm import LlmClient, LlmTurn, ToolCallItem, get_llm_client
 from incident_agent.mcp_client import MCPHub
 from incident_agent.tracing import TraceLogger, redact
 
@@ -478,18 +478,21 @@ async def run_query(
                 )
                 return final_text
 
+            def _format_tc(tc: ToolCallItem) -> Dict[str, Any]:
+                d: Dict[str, Any] = {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.name, "arguments": tc.arguments_json},
+                }
+                if tc.extra_content:
+                    d["extra_content"] = tc.extra_content
+                return d
+
             # Append assistant message with validated tool calls to history
             assistant_msg: Dict[str, Any] = {
                 "role": "assistant",
                 "content": turn.text,
-                "tool_calls": [
-                    {
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {"name": tc.name, "arguments": tc.arguments_json},
-                    }
-                    for tc in turn.tool_calls
-                ],
+                "tool_calls": [_format_tc(tc) for tc in turn.tool_calls],
             }
             messages.append(assistant_msg)
 
