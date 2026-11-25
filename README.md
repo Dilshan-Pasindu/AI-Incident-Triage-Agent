@@ -86,7 +86,7 @@ flowchart TD
 ### 3. Python Agent Host & Orchestrator
 - **Dynamic Tool & Resource Discovery**: Namespaces tools with server prefixes (`ops__*`, `fs__*`), registers a unified `read_resource(uri)` tool with dynamic schema descriptions, and auto-generates OpenAI/Grok function schemas.
 - **AnyIO Stdio Task Isolation**: Eliminates task-mismatch lifecycle crashes by dedicating long-running owner tasks for stdio transport.
-- **Provider-Swappable LLM Adapter**: Supports live OpenRouter Grok (`OPENROUTER_API_KEY`, e.g., `x-ai/grok-3-beta`), direct xAI Grok (`XAI_API_KEY`), and Google Gemini (`GEMINI_API_KEY`) with `tenacity` exponential backoff retries, plus offline deterministic execution via `MockLlmClient`.
+- **Provider-Swappable LLM Adapter**: Supports live OpenRouter Grok (`OPENROUTER_API_KEY`, e.g., `x-ai/grok-4.3`), direct xAI Grok (`XAI_API_KEY`), and Google Gemini (`GEMINI_API_KEY`) with `tenacity` exponential backoff retries, plus offline deterministic execution via `MockLlmClient`.
 
 ### 4. Security Guardrails & Human-in-the-Loop (HITL)
 - **Code-Enforced Canonical Path Boundary**: Uses `os.path.commonpath` to confine all workspace access to `mock_data/workspace`. Blocks directory traversal (`../../etc/passwd`), hidden file probes (`.env`), and symlink escapes.

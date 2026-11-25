@@ -114,6 +114,7 @@ class _OpenAICompatibleLlmClient:
             kwargs: Dict[str, Any] = {
                 "model": self.model,
                 "messages": messages,
+                "max_tokens": int(os.environ.get("LLM_MAX_TOKENS", "4096")),
             }
             if tools:
                 kwargs["tools"] = tools
@@ -162,9 +163,9 @@ class OpenRouterLlmClient(_OpenAICompatibleLlmClient):
         if not resolved_key:
             raise ValueError("OPENROUTER_API_KEY environment variable is required for OpenRouterLlmClient.")
 
-        raw_model = model or os.environ.get("OPENROUTER_MODEL") or os.environ.get("GROK_MODEL") or "x-ai/grok-3-beta"
+        raw_model = model or os.environ.get("OPENROUTER_MODEL") or os.environ.get("GROK_MODEL") or "x-ai/grok-4.3"
         if raw_model.lower() == "openrouter":
-            raw_model = os.environ.get("OPENROUTER_MODEL") or "x-ai/grok-3-beta"
+            raw_model = os.environ.get("OPENROUTER_MODEL") or "x-ai/grok-4.3"
         elif "/" not in raw_model and raw_model.lower().startswith("grok"):
             raw_model = f"x-ai/{raw_model}"
 
@@ -202,7 +203,7 @@ class GrokLlmClient(_OpenAICompatibleLlmClient):
 
         if use_openrouter:
             self.provider_name = "OpenRouter"
-            raw_model = model or os.environ.get("OPENROUTER_MODEL") or os.environ.get("GROK_MODEL") or "x-ai/grok-3-beta"
+            raw_model = model or os.environ.get("OPENROUTER_MODEL") or os.environ.get("GROK_MODEL") or "x-ai/grok-4.3"
             if "/" not in raw_model and raw_model.lower().startswith("grok"):
                 raw_model = f"x-ai/{raw_model}"
             headers = {
