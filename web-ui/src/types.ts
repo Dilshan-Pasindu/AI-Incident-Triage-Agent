@@ -72,9 +72,10 @@ export interface ApprovalResolvedEvent extends BaseEvent {
   event_type: 'approval_resolved'
   approval_id: string
   tool_call_id: string
-  tool: string
+  tool?: string
   decision: string
-  approval_source: string
+  source?: string
+  approval_source?: string
 }
 
 export interface FinalAnswerEvent extends BaseEvent {

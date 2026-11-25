@@ -4,7 +4,7 @@ import {
   Copy, Check, Zap, Shield, BarChart2, Activity
 } from 'lucide-react'
 import { useState } from 'react'
-import type { AgentEvent } from '../types'
+import type { AgentEvent, ApprovalResolvedEvent } from '../types'
 import { ApprovalCard } from './ApprovalCard'
 import { SecurityBanner } from './SecurityBanner'
 import { Badge } from './Badge'
@@ -53,9 +53,11 @@ function ServerBadge({ server }: { server: string }) {
   )
 }
 
-function EventRow({ event, onApprovalResolved }: {
+function EventRow({ event, onApprovalResolved, resolvedApproval, runEnded }: {
   event: AgentEvent
   onApprovalResolved?: (decision: 'approve' | 'reject') => void
+  resolvedApproval?: ApprovalResolvedEvent
+  runEnded?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -147,12 +149,16 @@ function EventRow({ event, onApprovalResolved }: {
         <ApprovalCard
           event={event}
           onResolved={onApprovalResolved ?? (() => {})}
+          resolvedDecision={resolvedApproval?.decision}
+          resolvedSource={resolvedApproval?.source ?? resolvedApproval?.approval_source}
+          runEnded={runEnded}
         />
       </div>
     )
   }
 
   if (event.event_type === 'approval_resolved') {
+    const source = event.source ?? event.approval_source ?? 'user'
     return (
       <div className="flex items-center gap-3 py-1.5 fade-slide-in">
         {event.decision === 'approved' ? (
@@ -165,7 +171,7 @@ function EventRow({ event, onApprovalResolved }: {
           <span className={event.decision === 'approved' ? 'text-emerald-400 font-medium' : 'text-amber-400 font-medium'}>
             {event.decision}
           </span>{' '}
-          by <span className="text-[var(--text)]">{event.approval_source}</span>
+          by <span className="text-[var(--text)]">{source}</span>
         </span>
       </div>
     )
@@ -308,6 +314,16 @@ export function EventTimeline({ events, onApprovalResolved }: EventTimelineProps
     )
   }
 
+  const resolvedByApprovalId = new Map<string, ApprovalResolvedEvent>()
+  let runEnded = false
+  for (const ev of events) {
+    if (ev.event_type === 'approval_resolved') {
+      resolvedByApprovalId.set(ev.approval_id, ev)
+    } else if (ev.event_type === 'final_answer' || ev.event_type === 'run_stopped') {
+      runEnded = true
+    }
+  }
+
   return (
     <div
       className="relative space-y-0.5 min-w-0"
@@ -319,7 +335,16 @@ export function EventTimeline({ events, onApprovalResolved }: EventTimelineProps
 
       {events.map((ev) => (
         <div key={`${ev.run_id}-${ev.event_id}`} className="relative pl-5 min-w-0 overflow-hidden">
-          <EventRow event={ev} onApprovalResolved={onApprovalResolved} />
+          <EventRow
+            event={ev}
+            onApprovalResolved={onApprovalResolved}
+            resolvedApproval={
+              ev.event_type === 'approval_required'
+                ? resolvedByApprovalId.get(ev.approval_id)
+                : undefined
+            }
+            runEnded={runEnded}
+          />
         </div>
       ))}
     </div>
